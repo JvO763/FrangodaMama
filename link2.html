@@ -207,6 +207,7 @@
 
         const rotaUrl = gerarLinkGoogleMaps(grupo);
 
+        // Monta o conteúdo HTML
         bloco.innerHTML = `
           <div style="display:flex; justify-content: space-between; align-items: center;">
             <h3>🚚 Rota ${i + 1} (${grupo.length} entregas)</h3>
@@ -215,14 +216,25 @@
               <span>Entregue</span>
             </label>
           </div>
+
           ${grupo.map(p => `
             <div class="pedido-card">
-              <strong>${p.nome_cliente || 'Cliente sem nome'}</strong><br>
-              ${p.endereco ? p.endereco + ', ' + (p.numero || '') + '<br>' : ''}
-              CEP: ${p.cep || '---'}<br>
-              🕒 ${p.horario_entrega || ''}
+              <strong>👤 ${p.nome_cliente || 'Cliente sem nome'}</strong><br>
+              ${p.endereco ? p.endereco + (p.numero ? ', ' + p.numero : '') + '<br>' : ''}
+              📍 CEP: ${p.cep || '---'}<br>
+              🕒 ${p.horario_entrega || ''}<br><br>
+
+              <div class="itens-pedido">
+                <strong>🍗 Itens pedidos:</strong><br>
+                ${p.qntd_frango ? `Frango assado: ${p.qntd_frango}<br>` : ''}
+                ${p.qntd_sobrecoxa ? `Coxa e sobrecoxa: ${p.qntd_sobrecoxa}<br>` : ''}
+                ${p.qntd_refri ? `Refrigerante: ${p.qntd_refri}<br>` : ''}
+              </div>
+
+              ${p.observacoes ? `<div class="obs-pedido"><strong>📝 Obs:</strong> ${p.observacoes}</div>` : ''}
             </div>
           `).join('')}
+
           <a href="${rotaUrl}" target="_blank" class="btn">🗺️ Abrir Rota Otimizada</a>
         `;
 
@@ -237,6 +249,7 @@
         container.appendChild(bloco);
       });
     }
+
 
 
   document.getElementById('btn-carregar').addEventListener('click', carregarPedidos);
