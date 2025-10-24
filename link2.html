@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2196f3">
+  <title>Frango da Mama</title>
+  <link rel="stylesheet" href="lib/framework7-bundle.min.css">
+  <link rel="stylesheet" href="css/link2.css">
+  <link rel="stylesheet" href="css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="css/remixicon.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="view view-main">
+      <!-- Toolbar inferior -->
+      <div class="toolbar toolbar-bottom">
+        <div class="toolbar-inner display-flex">
+          <a href="/loadingindex/" class="tab-link link"><i class="ri-restaurant-line"></i><span>Pedidos</span></a>
+          <a href="/loadinglink2/" class="tab-link link active"><i class="ri-map-pin-line"></i><span>Rotas</span></a>
+          <a href="/loadinglink3/" class="tab-link link"><i class="ri-user-line"></i><span>Clientes</span></a>
+          <a href="/loadinglink4/" class="tab-link link"><i class="ri-settings-3-line"></i><span>Configurações</span></a>
+        </div>
+      </div>
+
+      <!-- Página principal -->
+      <div data-name="link2" class="page color-theme-blue">
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="title" id="app-title">Rotas de Entregas</div>
+          </div>
+        </div>
+
+          <div class="page-content">
+            <div class="block">
+              <!-- Botão com estilo Framework7 -->
+              <a href="#" id="btn-carregar" class="button button-fill">Carregar e Agrupar Entregas</a>
+            </div>
+            <div class="block" id="lista-grupos"></div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Path to Framework7 Library Bundle JS-->
+    <script type="text/javascript" src="lib/framework7-bundle.min.js"></script>
+	  <!-- jQuery -->
+	  <script type="text/javascript" src="lib/jquery-3.7.0.min.js"></script>	
+    <script src="js/funcoes.js"></script>
+    <!-- Roteamento do app-->
+    <script type="text/javascript" src="js/routes.js"></script>
+    <script src="cordova.js"></script>
+
+  <script>
+    app.ptr.done(); // usa o app já existente
+  
+    // Usar Dom7 (o "jQuery" do Framework7)
+    var $$ = Dom7;
+
+    // Evento quando o usuário puxa para atualizar
+    $$('.ptr-content').on('ptr:refresh', function (e) {
+        // Simula uma requisição de rede ou recarregamento
+        setTimeout(function () {
+            app.ptr.done(); // Finaliza o preload
+        });
+    });
+
+    // Evento para qualquer página inicializada
+    $$(document).on('page:init', function (e) {
+      const page = e.detail.page;
+      console.log(`Página inicializada: ${page.name}`);
+
+      // Procura todos os botões dentro da página
+      $$(page.el).find('a, button').each(function () {
+        const btn = $$(this);
+        // Adiciona evento de click de debug
+        btn.on('click', function () {
+          console.log(`Botão clicado na página "${page.name}":`, btn.text() || btn.attr('id') || 'Sem texto/ID');
+        });
+      });
+    });
+
+    // Também adiciona um listener global de click como backup
+    document.addEventListener('click', function (e) {
+      const el = e.target;
+      if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+        console.log('Clique detectado globalmente em botão/link:', el.textContent || el.id);
+      }
+    });
+
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwTVNfu5ks4a1dCVpFkLXtXpmSwgModIS2F55CS26aImwckSaeH_vQWx3RKWPRtxsFWw/exec';
+
+    // Função para carregar pedidos
+    async function carregarPedidos() {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const res = await fetch(`${SCRIPT_URL}?date=${today}`);
+        const data = await res.json();
+        const pedidos = data.pedidos || [];
+
+        if (!pedidos.length) {
+          app.dialog.alert('Nenhum pedido encontrado para hoje.');
+          return;
+        }
+
+        const grupos = agruparEntregasMelhorado(pedidos);
+        exibirGrupos(grupos);
+      } catch (err) {
+        console.error(err);
+        app.dialog.alert('Erro ao carregar pedidos.');
+      }
+    }
+
+    function agruparEntregasMelhorado(entregas) {
+      const parseHorario = (p) => {
+        if (!p.horario_entrega) return null;
+        const baseDate = new Date();
+        const [h, m] = String(p.horario_entrega).split(':').map(Number);
+        return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m);
+      };
+
+      const entregasValidas = entregas
+        .filter(e => e.cep && e.horario_entrega && !e.entregue)
+        .map(e => ({ ...e, horario: parseHorario(e) }))
+        .filter(e => e.horario instanceof Date && !isNaN(e.horario));
+
+      entregasValidas.sort((a, b) => a.horario - b.horario);
+
+      const grupos = [];
+      entregasValidas.forEach(entrega => {
+        let adicionada = false;
+        const horaEntrega = entrega.horario.getTime();
+        const cepBase = entrega.cep.substring(0, 5);
+
+        for (const grupo of grupos) {
+          if (grupo.length >= 4) continue;
+
+          const horaPrimeiro = grupo[0].horario.getTime();
+          const diffMin = Math.abs(horaEntrega - horaPrimeiro) / 60000;
+          const cepGrupo = grupo[0].cep.substring(0, 5);
+
+          if (diffMin <= 25 && cepBase === cepGrupo) {
+            grupo.push(entrega);
+            adicionada = true;
+            break;
+          }
+        }
+
+        if (!adicionada) grupos.push([entrega]);
+      });
+
+      return grupos;
+    }
+
+    function gerarLinkGoogleMaps(grupo) {
+      const cidade = "Ribeirão Preto";
+      const uf = "SP";
+      const waypointsArray = grupo.map(e =>
+        `${e.endereco || ""}, ${e.numero || ""}, ${cidade} - ${uf}, ${e.cep || ""}`
+      );
+      const baseUrl = "https://www.google.com/maps/dir/?api=1";
+      let url = `${baseUrl}&origin=My+Location`;
+      const destino = waypointsArray.pop();
+      url += `&destination=${encodeURIComponent(destino)}`;
+      if (waypointsArray.length > 0) {
+        const waypoints = waypointsArray.map(w => encodeURIComponent(w)).join('|');
+        url += `&waypoints=${waypoints}`;
+      }
+      url += "&travelmode=driving";
+      return url;
+    }
+
+    async function marcarComoEntregue(grupo) {
+      try {
+        for (const p of grupo) {
+          const params = new URLSearchParams({
+            action: 'updateStatus',
+            row: p._sheetRow,
+            campo: 'entregue',
+            valor: 'true'
+          });
+          const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+          const data = await res.json();
+          if (data.erro) console.error('Erro na linha', p._sheetRow, data.erro);
+        }
+        app.dialog.alert('Entrega(s) marcada(s) como entregue!');
+      } catch (err) {
+        console.error(err);
+        app.dialog.alert('Erro ao atualizar entregas.');
+      }
+    }
+
+    function exibirGrupos(grupos) {
+      const container = document.getElementById('lista-grupos');
+      container.innerHTML = '';
+
+      const cores = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#ff5722', '#6f42c1', '#e83e8c'];
+
+      grupos.forEach((grupo, i) => {
+        const bloco = document.createElement('div');
+        bloco.className = 'grupo-entregas';
+        bloco.style.background = cores[i % cores.length];
+
+        const rotaUrl = gerarLinkGoogleMaps(grupo);
+
+        bloco.innerHTML = `
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h3>🚚 Rota ${i + 1} (${grupo.length} entregas)</h3>
+            <label class="checkbox-label">
+              <input type="checkbox" class="chk-entregue" ${grupo.every(p => p.entregue) ? 'checked' : ''}>
+              <span>Entregue</span>
+            </label>
+          </div>
+          ${grupo.map(p => `
+            <div class="pedido-card">
+              <strong>${p.nome_cliente || 'Cliente sem nome'}</strong><br>
+              ${p.endereco ? p.endereco + ', ' + (p.numero || '') + '<br>' : ''}
+              CEP: ${p.cep || '---'}<br>
+              🕒 ${p.horario_entrega || ''}
+            </div>
+          `).join('')}
+          <a href="${rotaUrl}" target="_blank" class="btn">🗺️ Abrir Rota Otimizada</a>
+        `;
+
+        const chk = bloco.querySelector('.chk-entregue');
+        chk.addEventListener('change', async () => {
+          if (chk.checked) {
+            await marcarComoEntregue(grupo);
+            bloco.remove();
+          }
+        });
+
+        container.appendChild(bloco);
+      });
+    }
+
+
+  document.getElementById('btn-carregar').addEventListener('click', carregarPedidos);
+  </script>
+
+</body>
+
+</html>

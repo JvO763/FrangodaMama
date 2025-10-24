@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Required meta tags-->
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Color theme for statusbar (Android only) -->
+    <meta name="theme-color" content="#2196f3">
+    <!-- Your app title -->
+    <title>Rotas de Entregas</title>
+    <!-- Path to Framework7 Library Bundle CSS -->
+    <link rel="stylesheet" href="lib/framework7-bundle.min.css">
+    <!-- CSS PERSONALIZADO PARA MENU-->
+    <link rel="stylesheet" href="css/link2.css">
+    <!--Ícones Material Design-->
+    <link rel="stylesheet" href="css/materialdesignicons.min.css">
+    <!--Ícones Material Design-->
+    <link rel="stylesheet" href="css/remixicon.css">
+
+</head>
+
+<body>
+  <div id="app">
+    <div class="page">
+      <div class="navbar">
+        <div class="navbar-inner">
+          <div class="title">Rotas de Entregas</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="block">
+          <a href="#" id="btn-carregar" class="button button-fill">Carregar e Agrupar Entregas</a>
+        </div>
+        <div class="block" id="lista-grupos"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/framework7@7/framework7-bundle.min.js"></script>
+  
+  <script>
+  const app = new Framework7();
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJjc1sjIzIdHevqzXsWz_RE2wyCzVc1Xg1iCRLm_wnS2iZQeJXlSNvFUlvzV8hYhiTcw/exec';
+
+  async function carregarPedidos() {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`${SCRIPT_URL}?date=${today}`);
+      const data = await res.json();
+      const pedidos = data.pedidos || [];
+
+      if (!pedidos.length) {
+        app.dialog.alert('Nenhum pedido encontrado para hoje.');
+        return;
+      }
+
+      const grupos = agruparEntregasMelhorado(pedidos);
+      exibirGrupos(grupos);
+    } catch (err) {
+      console.error(err);
+      app.dialog.alert('Erro ao carregar pedidos.');
+    }
+  }
+
+  // 🔹 Função para agrupar entregas (máx 4, mesmo CEP base, até 25 min de diferença)
+  function agruparEntregasMelhorado(entregas) {
+    const parseHorario = (p) => {
+      if (!p.horario_entrega) return null;
+      const baseDate = new Date();
+      const [h, m] = String(p.horario_entrega).split(':').map(Number);
+      return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, m);
+    };
+
+    const entregasValidas = entregas
+      .filter(e => e.cep && e.horario_entrega && !e.entregue) // filtra os que ainda não foram entregues
+      .map(e => ({ ...e, horario: parseHorario(e) }))
+      .filter(e => e.horario instanceof Date && !isNaN(e.horario));
+
+    entregasValidas.sort((a, b) => a.horario - b.horario);
+
+    const grupos = [];
+
+    entregasValidas.forEach(entrega => {
+      let adicionada = false;
+      const horaEntrega = entrega.horario.getTime();
+      const cepBase = entrega.cep.substring(0, 5);
+
+      for (const grupo of grupos) {
+        if (grupo.length >= 4) continue;
+
+        const horaPrimeiro = grupo[0].horario.getTime();
+        const diffMin = Math.abs(horaEntrega - horaPrimeiro) / 60000;
+        const cepGrupo = grupo[0].cep.substring(0, 5);
+
+        if (diffMin <= 25 && cepBase === cepGrupo) {
+          grupo.push(entrega);
+          adicionada = true;
+          break;
+        }
+      }
+
+      if (!adicionada) grupos.push([entrega]);
+    });
+
+    return grupos;
+  }
+
+  // 🔹 Gera link otimizado do Google Maps
+  function gerarLinkGoogleMaps(grupo) {
+      const cidade = "Ribeirão Preto";
+      const uf = "SP";
+
+      // Pegamos apenas os endereços do grupo
+      const waypointsArray = grupo.map(e =>
+        `${e.endereco || ""}, ${e.numero || ""}, ${cidade} - ${uf}, ${e.cep || ""}`
+      );
+
+      const baseUrl = "https://www.google.com/maps/dir/?api=1";
+      // Usando origem como localização atual do usuário
+      let url = `${baseUrl}&origin=My+Location`;
+
+      // O destino será o último endereço
+      const destino = waypointsArray.pop();
+      url += `&destination=${encodeURIComponent(destino)}`;
+
+      // Se tiver paradas intermediárias (waypoints)
+      if (waypointsArray.length > 0) {
+          const waypoints = waypointsArray.map(w => encodeURIComponent(w)).join('|');
+          url += `&waypoints=${waypoints}`;
+      }
+
+      url += "&travelmode=driving"; // ou "motorcycle" se quiser estilo de moto
+      return url;
+  }
+
+
+  // 
+  
+  async function marcarComoEntregue(grupo) {
+    try {
+      for (const p of grupo) {
+        const params = new URLSearchParams({
+          action: 'updateStatus',
+          row: p._sheetRow,    // linha real na planilha
+          campo: 'entregue',
+          valor: 'true'
+        });
+        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+        const data = await res.json();
+        if (data.erro) console.error('Erro na linha', p._sheetRow, data.erro);
+      }
+      app.dialog.alert('Entrega(s) marcada(s) como entregue!');
+    } catch (err) {
+      console.error(err);
+      app.dialog.alert('Erro ao atualizar entregas na planilha.');
+    }
+  }
+
+  function exibirGrupos(grupos) {
+    const container = document.getElementById('lista-grupos');
+    container.innerHTML = '';
+
+    const cores = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#ff5722', '#6f42c1', '#e83e8c'];
+
+    grupos.forEach((grupo, i) => {
+      const bloco = document.createElement('div');
+      bloco.className = 'grupo-entregas';
+      bloco.style.background = cores[i % cores.length];
+
+      const rotaUrl = gerarLinkGoogleMaps(grupo);
+
+      bloco.innerHTML = `
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <h3>🚚 Rota ${i + 1} (${grupo.length} entregas)</h3>
+          <label class="checkbox-label">
+            <input type="checkbox" class="chk-entregue" ${grupo.every(p => p.entregue) ? 'checked' : ''}>
+            <span>Entregue</span>
+          </label>
+        </div>
+        ${grupo.map(p => `
+          <div class="pedido-card">
+            <strong>${p.nome_cliente || 'Cliente sem nome'}</strong><br>
+            ${p.endereco ? p.endereco + ', ' + (p.numero || '') + '<br>' : ''}
+            CEP: ${p.cep || '---'}<br>
+            🕒 ${p.horario_entrega || ''}
+          </div>
+        `).join('')}
+        <a href="${rotaUrl}" target="_blank" class="btn">🗺️ Abrir Rota Otimizada</a>
+      `;
+
+      // Evento do checkbox
+      const chk = bloco.querySelector('.chk-entregue');
+      chk.addEventListener('change', async () => {
+        if (chk.checked) {
+          await marcarComoEntregue(grupo);
+          chk.nextElementSibling.textContent = "Entregue";
+          bloco.remove();
+        }
+      });
+
+      container.appendChild(bloco);
+    });
+  }
+
+  document.getElementById('btn-carregar').addEventListener('click', carregarPedidos);
+</script>
+
+</body>
+
+</html>

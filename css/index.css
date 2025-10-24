@@ -1,0 +1,571 @@
+:root{
+    --preto: #282b24;
+    --dourado: #e09447;
+    --cinza: #323232;
+    --branco: #f1f1f1;
+    --dourado_claro:#edb378;
+}
+
+/*Footer*/
+.toolbar{
+    height: 80px;
+}
+
+/*Footer*/
+.tab-link{
+    display: flex;
+    justify-content: center;
+    flex-flow: column wrap;
+    
+}
+
+/*Footer*/
+.toolbar-inner .link{ 
+    background-color: var(--preto);   
+    flex:1;
+    height: 80px;  
+    line-height: 25px; 
+	font-weight:bold;
+    color:var(--branco);
+    
+    
+}
+
+/*Footer*/
+.toolbar-inner .link:not(.active){
+    color:gray;
+	font-weight:normal;
+    background-color: rgba(241, 121, 1, 0.5) !important;
+}
+
+/*Footer*/
+.toolbar-inner > .link i{
+    font-size: 28px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dancing+Script:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dancing+Script:wght@400..700&family=Sour+Gummy:ital,wght@0,100..900;1,100..900&display=swap');
+
+/*Top*/
+.navbar{
+    font-weight: 400;
+    font-style: normal;
+    color: var(--branco);
+    font-family: "Sour Gummy", sans-serif;
+    font-optical-sizing: auto;
+    font-variation-settings:
+        "wdth" 100;
+    justify-content: space-between;
+    align-items: center;
+    
+}
+
+/*Top*/
+.navbar-bg{
+    background-color: var(--preto);
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: auto;
+    z-index: 0;
+    pointer-events: none; /* opcional: impede que clique no título atrapalhe os botões */
+
+}
+ 
+  /*Top*/
+.navbar .title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: auto;
+    z-index: 0;
+    pointer-events: none; /* opcional: impede que clique no título atrapalhe os botões */
+    font-family: "Sour Gummy", sans-serif;
+    color:var(--dourado);
+    font-size: 28px;
+}
+
+/*Content*/
+.color-theme-blue{
+    font-weight: 400;
+    background-color: var(--cinza);
+    color:var(--branco);
+    font-family: "Bebas Neue", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings:
+        "wdth" 100; 
+}
+
+/*Content*/
+.block{
+    font-weight: 400;
+    background-color: var(--cinza);
+    color:var(--branco);
+    font-family: "Bebas Neue", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings:
+        "wdth" 100;  
+}
+
+/*Content*/
+.page-content{
+    font-weight: 400;
+    background-color: var(--cinza);
+    color:var(--branco);
+    font-family: "Bebas Neue", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings:
+        "wdth" 100; 
+    padding-top: 30px;  /* Ajuste para o valor que achar necessário */
+}
+
+/*Ícones do Top*/
+.icon-only{
+    font-family: "Sour Gummy", sans-serif;
+    color:var(--dourado);
+    font-weight:bold;
+    font-size: 24px;
+}
+
+/*Ícones do Top*/
+.ri-add-line{
+    font-family: "Sour Gummy", sans-serif;
+    color:var(--dourado);
+    font-weight:bold;
+    font-size: 24px;
+}
+
+.ri-close-line{
+    font-family: "Sour Gummy", sans-serif;
+    color:var(--dourado_claro);
+    font-weight:bold;
+    font-size: 24px;
+}
+
+.button-fill{
+    background-color: var(--dourado);
+    color: #000; /* ou outro contraste que desejar */
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button-fill:hover {
+    background-color: #e08a74; /* uma variação mais clara no hover, opcional */
+}
+
+.ios .ripple-wave,
+.md .ripple-wave,
+.aurora .ripple-wave {
+  background-color: rgba(251, 102, 79, 0.3) !important; 
+}
+
+.tab-link .ripple-wave {
+    display: none !important;
+}
+
+.card {
+    background-color: #2d2d2d;
+    border-radius: 4px;
+    color: var(--branco);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+.card {
+    min-height: 85px; /* Ou o valor que desejar */
+    margin: 10px 10px;
+}
+
+/* Ocultar a barra de rolagem no Webkit (Chrome, Safari) */
+.page-content::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+/* Ocultar a barra de rolagem no Firefox */
+.page-content {
+    scrollbar-width: none;  /* Para Firefox */
+    -ms-overflow-style: none;  /* Para Internet Explorer 10+ */
+}
+
+/* Se necessário, ocultar também em todo o body */
+body::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+body {
+    scrollbar-width: none;  /* Para Firefox */
+    -ms-overflow-style: none;  /* Para Internet Explorer 10+ */
+}
+  
+/* Entrada pela esquerda */
+.popup.custom-popup-anim.modal-in {
+    animation: slideFromLeft 0.4s ease-out;
+}
+  
+  /* Saída pela esquerda */
+.popup.custom-popup-anim.modal-out {
+    animation: slideToLeft 0.4s ease-in;
+}
+  
+@keyframes slideFromLeft {
+from {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+to {
+    transform: translateX(0%);
+    opacity: 1;
+}
+}
+
+@keyframes slideToLeft {
+from {
+    transform: translateX(0%);
+    opacity: 1;
+}
+to {
+    transform: translateX(-100%);
+    opacity: 0.3;
+}
+}
+
+#app-title {
+    transition: opacity 0.3s ease;
+}
+  
+#app-title.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+  
+/* Contêiner do botão flutuante */
+.fab-container {
+    position: fixed;
+    bottom: 100px;  /* Distância do fundo */
+    right: 30px;   /* Distância da direita */
+    z-index: 100;  /* Garantir que o botão fique por cima dos outros elementos */
+}
+
+/* Estilo do botão flutuante */
+.filtro-icon {
+    background-color: var(--dourado);
+    border-radius: 50%;  /* Tornar o botão redondo */
+    padding: 15px;
+    font-size: 24px;  /* Tamanho do ícone */
+    color: var(--preto);
+    border: none;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Efeito ao passar o mouse */
+.filtro-icon:hover {
+    background-color: var(--dourado_claro);  /* Cor mais clara no hover */
+}
+ 
+  #loginBtn {
+    background-color: var(--dourado);
+    color: var(--preto);
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#loginBtn:hover {
+    background-color: var(--dourado_claro);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
+}
+
+#loginBtn:active {
+    transform: scale(0.98);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  border: 2px solid var(--dourado);
+  border-radius: 8px;
+  background-color: var(--cinza);
+  color: var(--branco);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 16px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+input[type="text"]::placeholder,
+input[type="password"]::placeholder,
+input[type="email"]::placeholder,
+textarea::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--dourado_claro);
+  background-color: #3a3a3a;
+  outline: none;
+}
+
+/* Tela de login centralizada */
+.login-container {
+  position: fixed;
+  z-index: 99999;
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0;
+  background: var(--branco);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.login-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: var(--preto);
+}
+
+/* Inputs personalizados */
+.login-input {
+  width: 250px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 2px solid var(--dourado);
+  border-radius: 8px;
+  background-color: var(--cinza);
+  color: var(--branco);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 16px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.login-input::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.login-input:focus {
+  border-color: var(--dourado_claro);
+  background-color: #3a3a3a;
+  outline: none;
+}
+
+/* Botão personalizado */
+#loginBtn {
+  width: 200px;
+  padding: 10px;
+  background-color: var(--dourado);
+  color: var(--preto);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  /* CENTRALIZAÇÃO */
+  display: block;
+  margin: 10px auto 0 auto;
+}
+
+
+#loginBtn:hover {
+  background-color: var(--dourado_claro);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+#loginBtn:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Mensagem de erro */
+.login-error {
+  color: red;
+  margin-top: 10px;
+  font-family: "Arial", sans-serif;
+  font-size: 14px;
+}
+/* Corrige problemas dos checkboxes */
+.card {
+  position: relative;
+  overflow: visible !important; /* <-- permite clicar nos botões no canto */
+  z-index: 0;
+}
+
+.checkbox-container {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 10; /* <-- fica acima do conteúdo */
+}
+
+.checkbox-label {
+  background: var(--dourado); /* fundo dourado visível */
+  color: var(--preto);        /* texto preto para contraste */
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  transition: background 0.3s;
+}
+
+.checkbox-label:hover {
+  background: var(--dourado_claro);
+}
+
+.checkbox-label input {
+  accent-color: var(--preto); /* deixa o checkbox preto */
+  cursor: pointer;
+  transform: scale(1.1);
+}
+
+.pedido-card {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin: 10px;
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pedido-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+
+.pedido-card .card-header {
+  background: #f8f9fa;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.pedido-itens {
+  font-size: 15px;
+  color: #333;
+}
+
+.checkbox-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #555;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4CAF50;
+}
+
+.pedido-card .card-content p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.pedido-card .obs {
+  font-style: italic;
+  color: #666;
+  margin-top: 6px;
+}
+
+#searchIcon {
+  color: var(--branco);
+  transition: color 0.3s;
+}
+
+/* Mantém navbar fixa com fundo */
+.popup-produto .navbar {
+    background-color: var(--cinza);
+    position: sticky;
+    top: 0;          /* garante que fique grudada no topo */
+    z-index: 10;     /* acima do conteúdo rolável */
+}
+
+/* Ajusta título */
+.popup-produto .navbar .title {
+    color: var(--dourado);
+    z-index: 11;     /* acima da navbar */
+}
+
+/* Remove padding/margin extra que cria espaço acima do conteúdo */
+.popup-produto .page-content {
+    overflow-y: auto;
+    padding-top: 0;      /* remove o espaço extra acima */
+    padding-bottom: 40px; /* mantém espaço para o botão */
+}
+
+.title {
+  user-select: none;       /* impede selecionar o texto */
+  pointer-events: none;    /* impede clicar/focar */
+}

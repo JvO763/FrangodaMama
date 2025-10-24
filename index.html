@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Required meta tags-->
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Color theme for statusbar (Android only) -->
+    <meta name="theme-color" content="#2196f3">
+    <!-- Your app title -->
+    <title>Frango da Mama</title>
+    <!-- Path to Framework7 Library Bundle CSS -->
+    <link rel="stylesheet" href="lib/framework7-bundle.min.css">
+    <!-- CSS PERSONALIZADO PARA MENU-->
+    <link rel="stylesheet" href="css/index.css">
+    <!--Ícones Material Design-->
+    <link rel="stylesheet" href="css/materialdesignicons.min.css">
+    <!--Ícones Material Design-->
+    <link rel="stylesheet" href="css/remixicon.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+    <style>
+      
+    </style>
+
+</head>
+
+<body>
+
+    <div id="login-screen" class="login-container">
+      <h2 class="login-title">Login</h2>
+      <input id="login-username" type="text" placeholder="Usuário" class="login-input">
+      <input id="login-password" type="password" placeholder="Senha" class="login-input">
+      <button id="loginBtn" onclick="realizarLogin()">Entrar</button>
+      <p id="login-error" class="login-error"></p>
+    </div>
+
+
+
+
+    <!-- App root element -->
+    <div id="app">
+    <!-- <div id="app" style="display:none;"></div> -->
+      
+        <!-- Popup para adicionar produto -->
+
+        <div class="popup popup-produto custom-popup-anim" id="popup-add-pedido">
+          <div class="view"><div class="page">
+            <div class="navbar"><div class="navbar-inner">
+              <div class="title">Novo Pedido</div>
+              <div class="right"><a href="#" class="link popup-close icon-only"><i class="ri-close-line"></i></a></div>
+            </div>
+          </div>
+
+             <div class="page-content">
+              <div class="block">
+                <div class="list no-hairlines-md">
+                  <ul>
+                    <!-- Frango -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">
+                          <label><input type="checkbox" id="chk-frango"> Frango Assado (R$49,90)</label>
+                        </div>
+                        <div class="item-input-wrap">
+                          <input type="number" id="qtd-frango" min="0" value="0" disabled />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Coxa -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">
+                          <label><input type="checkbox" id="chk-coxa"> Coxa-Sobrecoxa (R$9,90)</label>
+                        </div>
+                        <div class="item-input-wrap">
+                          <input type="number" id="qtd-coxa" min="0" value="0" disabled />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Refrigerantes livre -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Refrigerantes (ex: "2 Coca 2L, 1 Guaraná 1L")</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-refrigerantes" placeholder="Ex: 2 Coca 2L, 1 Guaraná 1L">
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Nome -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Nome do Cliente</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-nome-cliente" placeholder="Nome" />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Endereço -->
+                    <!-- Endereço -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Rua</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-endereco" placeholder="Digite o nome da rua" />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Número -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Número</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-numero" placeholder="Número" />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- CEP -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">CEP</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-cep" placeholder="CEP será preenchido automaticamente" readonly />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Cidade -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Cidade</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-cidade" value="Ribeirão Preto" readonly />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- UF -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">UF</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-uf" value="SP" readonly />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Horário -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Horário de Entrega</div>
+                        <div class="item-input-wrap">
+                          <input id="input-horario-entrega" type="datetime-local" />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Preço total -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Preço Total (R$)</div>
+                        <div class="item-input-wrap">
+                          <input type="number" id="input-preco-total" readonly />
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="block">
+                  <a href="#" class="button button-fill" id="btn-add-pedido">Adicionar Pedido</a>
+                </div>
+              </div>
+            </div>
+
+          </div></div>
+        </div>
+
+
+        <!-- Your main view, should have "view-main" class -->
+        <div class="view view-main">
+          <div class="toolbar toolbar-bottom">
+            <div class="toolbar-inner display-flex">
+              <a href="/loadingindex/" class="tab-link link active"><i class="ri-restaurant-line"></i><span>Pedidos</span></a>
+              <a href="/loadinglink2/" class="tab-link link"><i class="ri-map-pin-line"></i><span>Rotas</span></a>
+              <a href="/loadinglink3/" class="tab-link link"><i class="ri-user-line"></i><span>Clientes</span></a>
+              <a href="/loadinglink4/" class="tab-link link"><i class="ri-settings-3-line"></i><span>Configurações</span></a>
+            </div>
+          </div>
+
+          <div data-name="index" class="page color-theme-blue">
+            <div class="navbar"><div class="navbar-bg"></div><div class="navbar-inner">
+              <div class="left">
+                <a href="#" class="link icon-only popup-open" data-popup="#popup-add-pedido">
+                  <i class="ri-add-line"></i>
+                </a>
+              </div>
+              <div class="title" id="app-title">Frango da Mama</div>
+              <div class="right">
+                <a href="#" class="link icon-only" id="btnBuscar"><i id="searchIcon" class="ri-filter-3-line"></i></a>
+              </div>
+            </div></div>
+
+            <div class="page-content ptr-content">
+              <div id="preloader" style="display:none;text-align:center;margin:20px 0;"><div class="preloader"></div></div>
+              <div id="produtos" class="block grid grid-cols-1 gap-2 card-list" style="padding:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- Path to Framework7 Library Bundle JS-->
+    <script type="text/javascript" src="lib/framework7-bundle.min.js"></script>
+	  <!-- jQuery -->
+	  <script type="text/javascript" src="lib/jquery-3.7.0.min.js"></script>	
+    <script src="js/funcoes.js"></script>
+    <!-- Roteamento do app-->
+    <script type="text/javascript" src="js/routes.js"></script>
+    <script src="cordova.js"></script>
+
+    <script>
+      app.ptr.done(); // usa o app já existente
+  
+      // Usar Dom7 (o "jQuery" do Framework7)
+      var $$ = Dom7;
+  
+      // Evento quando o usuário puxa para atualizar
+      $$('.ptr-content').on('ptr:pullstart', function (e) {
+        // Quando começa a puxar, mostra preloader
+        $$('#preloader').show();
+      });
+
+      $$('.ptr-content').on('ptr:pullmove', function (e, distance) {
+        // Opcional: você pode ajustar a opacidade ou o tamanho do preloader conforme a distância
+        const max = 100; // distancia máxima considerada
+        const perc = Math.min(distance / max, 1);
+        $$('#preloader').css('opacity', perc);
+      });
+
+      $$('.ptr-content').on('ptr:pullend', function (e) {
+        // Quando o usuário solta, restaura opacidade
+        $$('#preloader').css('opacity', 1);
+      });
+
+      $$('.ptr-content').on('ptr:refresh', function (e) {
+        // Simula carregamento
+        setTimeout(function () {
+            if (window.carregarPedidosDoDia) window.carregarPedidosDoDia();
+            $$('#preloader').hide();
+            app.ptr.done();
+        }, 1500);
+      });
+
+
+    </script>
+
+    <script>
+
+      document.addEventListener('DOMContentLoaded', function () {
+        // Mostrar preloader inicialmente
+        $$('#preloader').show();
+
+        // Simula um delay (você pode remover o setTimeout depois se quiser)
+        setTimeout(() => {
+          $$('#preloader').hide(); // Esconde o preloader depois do carregamento
+        }, 2000); // tempo simulado para carregamento
+      });
+
+      // Esconde os cards ao sair da página index
+      $$(document).on('page:beforeout', '.page[data-name="index"]', function () {
+        console.log('Saindo da index, ocultando cards');
+        $$('#produtos').hide();
+      });
+
+      // Mostra os cards ao retornar para a página index
+      $$(document).on('page:afterin', '.page[data-name="index"]', function () {
+        console.log('Voltando para index, mostrando cards');
+        $$('#produtos').show();
+      });
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Verifica se o usuário já está logado na sessão atual
+        const logado = sessionStorage.getItem("usuarioLogado");
+
+        if (logado === "true") {
+          // Oculta a tela de login e mostra o conteúdo
+          document.getElementById("login-screen").style.display = "none";
+          //document.getElementById("app-content").style.display = "block";
+        } else {
+          // Mostra a tela de login
+          document.getElementById("login-screen").style.display = "block";
+          //document.getElementById("app-content").style.display = "none";
+        }
+      });
+
+      function realizarLogin() {
+        var usuario = document.getElementById("login-username").value;
+        var senha = document.getElementById("login-password").value;
+
+        // Substitua pela URL do seu Apps Script
+        var url = "https://script.google.com/macros/s/AKfycbzJjc1sjIzIdHevqzXsWz_RE2wyCzVc1Xg1iCRLm_wnS2iZQeJXlSNvFUlvzV8hYhiTcw/exec";
+
+        fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              sessionStorage.setItem("usuarioLogado", "true");
+              document.getElementById("login-screen").style.display = "none";
+              //document.getElementById("app-content").style.display = "block";
+            } else {
+              document.getElementById("login-error").innerText = "Usuário ou senha inválidos";
+            }
+          })
+          .catch(err => {
+            console.error("Erro ao realizar login:", err);
+            document.getElementById("login-error").innerText = "Erro na conexão";
+          });
+      }
+
+      (function(){
+        // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJjc1sjIzIdHevqzXsWz_RE2wyCzVc1Xg1iCRLm_wnS2iZQeJXlSNvFUlvzV8hYhiTcw/exec";
+        // --------------------------------------------------------------------
+
+        const PRECO_FRANGO_ASSADO = 49.90;
+        const PRECO_COXA_SOBRECOXA = 9.90;
+        const PRECO_REFRIGERANTE = 10.00;
+
+        const $$ = Dom7; // Framework7 Dom7
+
+        // habilitar/desabilitar quantidades quando checkbox mudar
+        $$('#chk-frango').on('change', () => {
+          $$('#qtd-frango').prop('disabled', !$$('#chk-frango').prop('checked'));
+          atualizarPrecoTotal();
+        });
+        $$('#chk-coxa').on('change', () => {
+          $$('#qtd-coxa').prop('disabled', !$$('#chk-coxa').prop('checked'));
+          atualizarPrecoTotal();
+        });
+        $$('#qtd-frango, #qtd-coxa').on('input', atualizarPrecoTotal);
+        $$('#input-refrigerantes').on('input', atualizarPrecoTotal);
+
+        // Conta refrigerantes a partir do texto (soma os números no começo de cada item separado por vírgula).
+        function parseRefrigerantes(text){
+          if(!text) return 0;
+          // divide por vírgula
+          const items = text.split(',');
+          let total = 0;
+          items.forEach(it => {
+            it = it.trim();
+            // tenta encontrar número no começo
+            const m = it.match(/^(\d+)\b/);
+            if(m) total += parseInt(m[1]);
+            // se não tiver número e não for vazio, conta como 1 (opcional)
+            // else if(it.length>0) total += 1;
+          });
+          return total;
+        }
+
+        function atualizarPrecoTotal(){
+          const qtdFrango = parseInt($$('#qtd-frango').val()) || 0;
+          const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
+          const qtdRefri = parseRefrigerantes($$('#input-refrigerantes').val());
+          const total = (qtdFrango * PRECO_FRANGO_ASSADO) + (qtdCoxa * PRECO_COXA_SOBRECOXA) + (qtdRefri * PRECO_REFRIGERANTE);
+          $$('#input-preco-total').val(total.toFixed(2));
+        }
+
+        // extrai data e hora de um datetime-local (string) no formato esperado
+        function splitDateTimeLocal(datetimeLocal){
+          // datetimeLocal ex: "2025-10-13T12:30"
+          if(!datetimeLocal) return {date:'', time:''};
+          const [datePart, timePart] = datetimeLocal.split('T');
+          // timePart pode ter segundos, removemos
+          const timeOnly = (timePart || '').split(':').slice(0,2).join(':');
+          return { date: datePart, time: timeOnly };
+        }
+
+        // envia pedido
+        $$('#btn-add-pedido').on('click', async () => {
+          const nome = $$('#input-nome-cliente').val().trim();
+          const endereco = $$('#input-endereco').val().trim();
+          const numero = $$('#input-numero').val().trim();
+          const cep = $$('#input-cep').val().trim();
+          const datetimeLocal = $$('#input-horario-entrega').val(); // ex: 2025-10-13T12:30
+          const refrigerantesText = $$('#input-refrigerantes').val().trim();
+          const qtdFrango = $$('#chk-frango').prop('checked') ? parseInt($$('#qtd-frango').val()) || 0 : 0;
+          const qtdCoxa = $$('#chk-coxa').prop('checked') ? parseInt($$('#qtd-coxa').val()) || 0 : 0;
+          const qtdRefri = parseRefrigerantes(refrigerantesText);
+          const precoTotal = parseFloat($$('#input-preco-total').val()) || 0;
+          const pago = false;       // por padrão, pedido novo ainda não foi pago
+          const entregue = false;   // por padrão, pedido novo ainda não foi entregue
+
+
+          if((qtdFrango + qtdCoxa + qtdRefri) === 0 || !nome || !endereco || !datetimeLocal){
+            app.dialog.alert('Preencha todos os campos obrigatórios e escolha ao menos um item.');
+            return;
+          }
+
+          const {date: data_entrega, time: horario_entrega} = splitDateTimeLocal(datetimeLocal);
+
+          const body = {
+            data_entrega: data_entrega,             // YYYY-MM-DD
+            horario_entrega: horario_entrega,       // HH:MM
+            qntd_frango: qtdFrango,
+            qntd_sobrecoxa: qtdCoxa,
+            qntd_refri: qtdRefri,
+            nome_cliente: nome,
+            endereco: endereco,
+            numero: numero,
+            cep: cep,
+            status: 'agendado',
+            observacoes: refrigerantesText,
+            pago: pago,
+            entregue: entregue
+            
+          };
+
+          try {
+            console.log(JSON.stringify(body));
+            // Faz POST (assumindo que seu Apps Script esteja configurado para aceitar CORS)
+            const res = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              mode: 'no-cors'
+            });
+
+            // tenta ler resposta JSON (se o Apps Script responder normalmente)
+            let json;
+            try { json = await res.json(); } catch(e) { json = null; }
+
+            app.popup.close('#popup-add-pedido');
+            app.dialog.alert('Pedido adicionado com sucesso!');
+            // limpar campos
+            $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
+            $$('#chk-coxa').prop('checked', false); $$('#qtd-coxa').val(0).prop('disabled', true);
+            $$('#input-refrigerantes').val('');
+            $$('#input-nome-cliente').val('');
+            $$('#input-endereco').val('');
+            $$('#input-numero').val('');
+            $$('#input-cep').val('');
+            $$('#input-horario-entrega').val('');
+            $$('#input-preco-total').val('');
+            // atualizar lista do dia
+            carregarPedidosDoDia();
+          } catch (err) {
+            console.error('Erro ao enviar pedido:', err);
+            app.dialog.alert('Erro ao enviar pedido. Verifique a conexão ou o URL do script.');
+          }
+        });
+
+        // Ajustar mínimo do datetime-local: busca pedidos do dia e calcula min = último+10min ou agora+10min
+        async function ajustarMinHorario(){
+          try {
+            
+            const todayDate = new Date().toISOString().slice(0,10);
+            const res = await fetch(`${SCRIPT_URL}?date=${todayDate}`);
+            const data = await res.json();
+            // data.pedidos expected array
+            const pedidos = data.pedidos || data || [];
+            let maxTime = null;
+            pedidos.forEach(p => {
+              const h = p.horario_entrega;
+              if(!h) return;
+              // if stored as "HH:MM" -> combine with date
+              let dt;
+              if(typeof h === 'string' && !h.includes('T') && h.match(/^\d{1,2}:\d{2}$/)){
+                dt = new Date(`${todayDate}T${h}:00`);
+              } else {
+                dt = new Date(h);
+              }
+              if(!isNaN(dt) && (maxTime === null || dt > maxTime)) maxTime = dt;
+            });
+            const minDate = new Date(Math.max((maxTime?maxTime.getTime():0), Date.now()) + 3*60000);
+            const pad = n => String(n).padStart(2,'0');
+            const isoLocal = `${minDate.getFullYear()}-${pad(minDate.getMonth()+1)}-${pad(minDate.getDate())}T${pad(minDate.getHours())}:${pad(minDate.getMinutes())}`;
+            $$('#input-horario-entrega').attr('min', isoLocal);
+            $$('#input-horario-entrega').val(isoLocal);
+          } catch (err) {
+            console.error('Erro ao ajustar mínimo do horário:', err);
+          }
+        }
+
+        async function carregarPedidosDoDia(showOnlyNotDelivered = false) {
+          try {
+            $$('#produtos').html('');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const res = await fetch(`${SCRIPT_URL}?date=${dateStr}`);
+            const data = await res.json();
+            const pedidos = (data.pedidos || []);
+
+            // ordenar por horario_entrega (hora)
+            pedidos.sort((a, b) => {
+              const ta = a.horario_entrega || '';
+              const tb = b.horario_entrega || '';
+              const ma = (ta.match(/(\d+):(\d+)/) ? parseInt(ta.split(':')[0]) * 60 + parseInt(ta.split(':')[1]) : 0);
+              const mb = (tb.match(/(\d+):(\d+)/) ? parseInt(tb.split(':')[0]) * 60 + parseInt(tb.split(':')[1]) : 0);
+              return ma - mb;
+            });
+
+            let pedidosParaMostrar = pedidos;
+            if (showOnlyNotDelivered) {
+              pedidosParaMostrar = pedidos.filter(p => {
+                // Normaliza o valor de 'entregue' (boolean, string, número etc.)
+                const val = String(p.entregue || '').trim().toLowerCase();
+                return val === '' || val === 'false' || val === '0' || val === 'não' || val === 'nao';
+              });
+            }
+
+            if (pedidosParaMostrar.length === 0) {
+              $$('#produtos').html('<div class="block"><p>Nenhum pedido para hoje.</p></div>');
+              return;
+            }
+
+            // monta cards — importantíssimo: usar p._sheetRow (linha da planilha) para data-row
+            pedidosParaMostrar.forEach((p, i) => {
+              const sheetRow = p._sheetRow || (i + 2); // fallback se não existir _sheetRow
+              const qtdFrango = p.qntd_frango || p.qtd_frango || 0;
+              const qtdCoxa = p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0;
+              const qtdRefri = p.qntd_refri || p.qtd_refri || 0;
+              const preco = parseFloat(p.preco_total || p.precoTotal || p.preco || 0).toFixed(2);
+
+              const items = [];
+              if (qtdFrango) items.push(`Frango: ${qtdFrango}`);
+              if (qtdCoxa) items.push(`Coxa: ${qtdCoxa}`);
+              if (qtdRefri) items.push(`Refri: ${qtdRefri}`);
+
+              const horaAjustada = p.horario_entrega || '';
+
+              const card = `
+                <div class="card pedido-card" data-row="${sheetRow}" data-id="${i}">
+                  <div class="card-header flex justify-between items-center">
+                    <div class="pedido-itens">
+                      <b>${items.join(' • ')}</b>
+                    </div>
+                    <div class="checkbox-container">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
+                        <span>Entregue</span>
+                      </label>
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
+                        <span>Pago</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="card-content card-content-padding">
+                    <p><b>Cliente:</b> ${p.nome_cliente || p.nome || '-'}</p>
+                    <p><b>Endereço:</b> ${p.endereco || '-'}</p>
+                    <p><b>Horário:</b> ${horaAjustada}</p>
+                    <p><b>Total:</b> R$ ${preco}</p>
+                    ${p.observacoes ? `<p class="obs"><b>Obs:</b> ${p.observacoes}</p>` : ''}
+                  </div>
+                </div>
+              `;
+
+              $$('#produtos').append(card);
+            });
+
+            // === único handler delegado para todos os checkboxes (evita binds múltiplos) ===
+            // removemos handlers individuais dentro do forEach e usamos delegação
+            $$('#produtos').off('change', '.chk-entregue, .chk-pago'); // limpa binds anteriores, por segurança
+            $$('#produtos').on('change', '.chk-entregue, .chk-pago', async function () {
+              const $el = $$(this);
+              const card = $el.closest('.card');
+              const row = card.data('row'); // VAMOS USAR data-row (linha real na planilha)
+              const campo = $el.hasClass('chk-entregue') ? 'entregue' : 'pago';
+              const valor = $el.prop('checked');
+
+              console.log(`Tentando atualizar linha ${row}, campo ${campo}, valor ${valor}`);
+
+              try {
+                // Use GET para updateStatus (ou JSONP se tiver problema de CORS)
+                const url = `${SCRIPT_URL}?action=updateStatus&row=${encodeURIComponent(row)}&campo=${encodeURIComponent(campo)}&valor=${encodeURIComponent(valor)}`;
+                const resp = await fetch(url);
+                // se seu Apps Script responder JSON com CORS, você conseguirá ler a resposta:
+                let json = null;
+                try { json = await resp.json(); } catch (e) { console.warn('Resposta não JSON', e); }
+                console.log('updateStatus resposta:', json || resp);
+              } catch (err) {
+                console.error('Erro ao atualizar status:', err);
+                app.dialog.alert('Erro ao salvar mudança. Verifique a conexão.');
+                // opcional: reverte o estado no UI se falhar
+                $el.prop('checked', !valor);
+              }
+            });
+
+          } catch (err) {
+            console.error('❌ Erro ao carregar pedidos do dia:', err);
+            $$('#produtos').html('<div class="block"><p>Erro ao carregar pedidos.</p></div>');
+          }
+        }
+
+        // abrir popup: ajustar min
+        $$('.popup-open[data-popup="#popup-add-pedido"]').on('click', ajustarMinHorario);
+
+        // carregar ao abrir a página
+        document.addEventListener('DOMContentLoaded', () => {
+          carregarPedidosDoDia();
+        });
+
+        // Filtro pelo ícone de busca
+        let filtrando = false;
+        let filtrandoEmProgresso = false;
+
+        $$('#btnBuscar').on('click', async () => {
+          if (filtrandoEmProgresso) return; // bloqueia cliques simultâneos
+          filtrandoEmProgresso = true;
+
+          filtrando = !filtrando;
+
+          if (filtrando) {
+            $$('#searchIcon').css('color', 'var(--dourado)');
+            await carregarPedidosDoDia(true); // aplica filtro
+          } else {
+            $$('#searchIcon').css('color', 'var(--branco)');
+            await carregarPedidosDoDia(false); // remove filtro
+          }
+
+          filtrandoEmProgresso = false;
+        });
+
+
+
+
+
+        // expose carregarPedidosDoDia to global (in case other scripts call it)
+        window.carregarPedidosDoDia = carregarPedidosDoDia;
+      })();
+
+      document.getElementById("input-endereco").addEventListener("blur", async () => {
+        const rua = document.getElementById("input-endereco").value.trim();
+        const cidade = "Ribeirão Preto";
+        const uf = "SP";
+
+        if (!rua) return;
+
+        try {
+          // Pesquisa o CEP com base no nome da rua (ViaCEP)
+          const url = `https://viacep.com.br/ws/${uf}/${cidade}/${encodeURIComponent(rua)}/json/`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (Array.isArray(data) && data.length > 0 && data[0].cep) {
+            document.getElementById("input-cep").value = data[0].cep;
+          } else {
+            document.getElementById("input-cep").value = "Não encontrado";
+          }
+        } catch (err) {
+          console.error("Erro ao buscar CEP:", err);
+          document.getElementById("input-cep").value = "Erro";
+        }
+      });
+
+    </script>
+
+
+  
+</body>  
+
+</html>
