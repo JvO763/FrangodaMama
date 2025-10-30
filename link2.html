@@ -95,25 +95,56 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwTVNfu5ks4a1dCVpFkLXtXpmSwgModIS2F55CS26aImwckSaeH_vQWx3RKWPRtxsFWw/exec';
 
     // Função para carregar pedidos
-    async function carregarPedidos() {
+  // Substitua sua função carregarPedidos atual por esta
+  async function carregarPedidos() {
+    const container = document.getElementById('lista-grupos');
+    container.innerHTML = '<div class="block"><p>Carregando pedidos...</p></div>';
+    try {
+      // Ajuste de fuso horário (UTC-3) para garantir que "hoje" não vire o dia seguinte após 21h
+      const now = new Date();
+      const saoPauloDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      const today = saoPauloDate.toISOString().slice(0, 10);
+
+      // cache-buster + solicita não usar cache do browser
+      const url = `${SCRIPT_URL}?date=${today}&_=${Date.now()}`;
+
+      console.log('[carregarPedidos] fetch ->', url);
+      const res = await fetch(url, { cache: 'no-store' });
+
+      console.log('[carregarPedidos] status:', res.status, res.statusText);
+
+      // tenta ler como texto primeiro (para ver possíveis respostas não-JSON)
+      const text = await res.text();
+      console.log('[carregarPedidos] resposta (raw):', text);
+
+      let data;
       try {
-        const today = new Date().toISOString().slice(0, 10);
-        const res = await fetch(`${SCRIPT_URL}?date=${today}`);
-        const data = await res.json();
-        const pedidos = data.pedidos || [];
-
-        if (!pedidos.length) {
-          app.dialog.alert('Nenhum pedido encontrado para hoje.');
-          return;
-        }
-
-        const grupos = agruparEntregasMelhorado(pedidos);
-        exibirGrupos(grupos);
-      } catch (err) {
-        console.error(err);
-        app.dialog.alert('Erro ao carregar pedidos.');
+        data = JSON.parse(text);
+      } catch (e) {
+        // se não for JSON, tenta ver se o body já é do formato esperado (ex.: diretamente objeto)
+        console.warn('[carregarPedidos] corpo não é JSON válido:', e);
+        container.innerHTML = `<div class="block"><p>Resposta inesperada do servidor. Veja o console (raw).</p></div>`;
+        return;
       }
+
+      const pedidos = data.pedidos || [];
+      console.log('[carregarPedidos] pedidos encontrados:', pedidos.length, pedidos);
+
+      if (!pedidos.length) {
+        container.innerHTML = '<div class="block"><p>Nenhum pedido encontrado para hoje.</p></div>';
+        return;
+      }
+
+      const grupos = agruparEntregasMelhorado(pedidos);
+      exibirGrupos(grupos);
+
+    } catch (err) {
+      console.error('[carregarPedidos] erro:', err);
+      container.innerHTML = `<div class="block"><p>Erro ao carregar pedidos. Veja console (CORS / rede / URL).</p></div>`;
+      app.dialog.alert('Erro ao carregar pedidos. Verifique console e Network (DevTools).');
     }
+  }
+
 
     function agruparEntregasMelhorado(entregas) {
       const parseHorario = (p) => {
@@ -174,87 +205,231 @@
       return url;
     }
 
-    async function marcarComoEntregue(grupo) {
-      try {
-        for (const p of grupo) {
-          const params = new URLSearchParams({
-            action: 'updateStatus',
-            row: p._sheetRow,
-            campo: 'entregue',
-            valor: 'true'
-          });
-          const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
-          const data = await res.json();
-          if (data.erro) console.error('Erro na linha', p._sheetRow, data.erro);
-        }
-        app.dialog.alert('Entrega(s) marcada(s) como entregue!');
-      } catch (err) {
-        console.error(err);
-        app.dialog.alert('Erro ao atualizar entregas.');
-      }
-    }
-
-    function exibirGrupos(grupos) {
-      const container = document.getElementById('lista-grupos');
-      container.innerHTML = '';
-
-      const cores = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#ff5722', '#6f42c1', '#e83e8c'];
-
-      grupos.forEach((grupo, i) => {
-        const bloco = document.createElement('div');
-        bloco.className = 'grupo-entregas';
-        bloco.style.background = cores[i % cores.length];
-
-        const rotaUrl = gerarLinkGoogleMaps(grupo);
-
-        // Monta o conteúdo HTML
-        bloco.innerHTML = `
-          <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h3>🚚 Rota ${i + 1} (${grupo.length} entregas)</h3>
-            <label class="checkbox-label">
-              <input type="checkbox" class="chk-entregue" ${grupo.every(p => p.entregue) ? 'checked' : ''}>
-              <span>Entregue</span>
-            </label>
-          </div>
-
-          ${grupo.map(p => `
-            <div class="pedido-card">
-              <strong>👤 ${p.nome_cliente || 'Cliente sem nome'}</strong><br>
-              ${p.endereco ? p.endereco + (p.numero ? ', ' + p.numero : '') + '<br>' : ''}
-              📍 CEP: ${p.cep || '---'}<br>
-              🕒 ${p.horario_entrega || ''}<br><br>
-
-              <div class="itens-pedido">
-                <strong>🍗 Itens pedidos:</strong><br>
-                ${p.qntd_frango ? `Frango assado: ${p.qntd_frango}<br>` : ''}
-                ${p.qntd_sobrecoxa ? `Coxa e sobrecoxa: ${p.qntd_sobrecoxa}<br>` : ''}
-                ${p.qntd_refri ? `Refrigerante: ${p.qntd_refri}<br>` : ''}
-              </div>
-
-              ${p.observacoes ? `<div class="obs-pedido"><strong>📝 Obs:</strong> ${p.observacoes}</div>` : ''}
-            </div>
-          `).join('')}
-
-          <a href="${rotaUrl}" target="_blank" class="btn">🗺️ Abrir Rota Otimizada</a>
-        `;
-
-        const chk = bloco.querySelector('.chk-entregue');
-        chk.addEventListener('change', async () => {
-          if (chk.checked) {
-            await marcarComoEntregue(grupo);
-            bloco.remove();
-          }
-        });
-
-        container.appendChild(bloco);
+    // Substitui a função antiga
+async function marcarComoEntregueByRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  try {
+    // atualiza em paralelo (mais rápido)
+    const promises = rows.map(row => {
+      const params = new URLSearchParams({
+        action: 'updateStatus',
+        row: row,
+        campo: 'entregue',
+        valor: 'true'
       });
+      return fetch(`${SCRIPT_URL}?${params.toString()}`);
+    });
+    const results = await Promise.all(promises);
+    // tenta logar respostas (opcional)
+    for (const r of results) {
+      try { console.log('updateStatus ok', r.status); } catch(e){}
     }
+    app.dialog.alert('Entrega(s) marcada(s) como entregue!');
+  } catch (err) {
+    console.error('Erro ao marcar entregues em lote:', err);
+    app.dialog.alert('Erro ao atualizar entregas.');
+  }
+}
+
+    // Substitua por esta versão
+// --- substituir a função exibirGrupos inteira por esta ---
+function exibirGrupos(grupos) {
+  const container = document.getElementById('lista-grupos');
+  container.innerHTML = '';
+
+  // map row -> pedido (para consulta rápida)
+  window.pedidosByRow = {};
+
+  const cores = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#ff5722', '#6f42c1', '#e83e8c'];
+
+  const toNumber = (v) => { const n = Number((v===undefined||v===null)?0:v); return isNaN(n)?0:n; };
+  const isTrue = (v) => { if (v===true||v===1) return true; const s = String(v||'').trim().toLowerCase(); return s==='true'||s==='1'||s==='sim'||s==='yes'; };
+  const fmt = (v) => toNumber(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Preencher pedidosByRow
+  grupos.forEach(gr => gr.forEach(p => {
+    const row = p._sheetRow || '';
+    if (row) window.pedidosByRow[row] = p;
+  }));
+
+  grupos.forEach((grupo, i) => {
+    const bloco = document.createElement('div');
+    bloco.className = 'grupo-entregas';
+    bloco.style.background = cores[i % cores.length];
+    bloco.style.padding = '12px';
+    bloco.style.borderRadius = '10px';
+    bloco.style.marginBottom = '12px';
+    bloco.dataset.grupoIndex = String(i);
+
+    // calcula total do grupo e se todos estão pagos
+    const grupoTotal = grupo.reduce((s, p) => s + toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0), 0);
+    const grupoPago = grupo.every(p => isTrue(p.pago));
+    const rotaUrl = gerarLinkGoogleMaps(grupo);
+
+    // cabeçalho com elementos identificáveis para atualização posterior
+    const headerHTML = `
+      <div class="grupo-header" style="display:flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin:0;">🚚 Rota ${i + 1} (<span class="grupo-count">${grupo.length}</span> entregas)</h3>
+          <div style="font-size:0.9rem; margin-top:6px;">
+            <strong>Total da rota:</strong> <span class="rota-total">R$ ${fmt(grupoTotal)}</span> &nbsp;•&nbsp;
+            <strong>Pago:</strong> <span class="rota-pago">${grupoPago ? 'Sim' : 'Não'}</span>
+          </div>
+        </div>
+        <label class="checkbox-label">
+          <input type="checkbox" class="chk-entregue" ${grupo.every(p => isTrue(p.entregue)) ? 'checked' : ''}>
+          <span>Entregue</span>
+        </label>
+      </div>
+    `;
+
+    // cria container onde os pedidos ficarão e serão "sortable"
+    const listId = `grupo-list-${i}`;
+    const pedidosHTML = grupo.map(p => {
+      const nome = p.nome_cliente || p.nome || 'Cliente sem nome';
+      const endereco = p.endereco ? (p.endereco + (p.numero ? ', ' + p.numero : '')) : '-';
+      const cep = p.cep || '---';
+      const horario = p.horario_entrega || '';
+      const qtdFrango = toNumber(p.qntd_frango ?? p.qtd_frango ?? 0);
+      const qtdCoxa = toNumber(p.qntd_sobrecoxa ?? p.qtd_sobrecoxa ?? 0);
+      const qtdRefri = toNumber(p.qntd_refri ?? p.qtd_refri ?? 0);
+      const qtdArroz = toNumber(p.qntd_arroz ?? p.qtd_arroz ?? 0);
+      const tipoRefri = p.tipo_refrigerante ?? p.tipo_refri ?? p.tipoRefri ?? '';
+      const preco = toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0);
+      const pago = isTrue(p.pago);
+      const row = p._sheetRow || '';
+
+      return `
+        <div class="pedido-card" data-row="${row}" style="margin-bottom:8px; padding:10px; background: rgba(255,255,255,0.12); border-radius:8px; cursor:grab;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:600;">${nome}</div>
+            <div style="font-size:0.9rem;">R$ ${fmt(preco)}</div>
+          </div>
+          <div style="font-size:0.9rem; margin-top:6px;">
+            <div><strong>Endereço:</strong> ${endereco}</div>
+            <div><strong>CEP:</strong> ${cep} &nbsp;•&nbsp; <strong>Horário:</strong> ${horario}</div>
+            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} ${qtdRefri ? `• Refri ${qtdRefri}` : ''}</div>
+            ${tipoRefri ? `<div><strong>Tipo refri:</strong> ${tipoRefri}</div>` : ''}
+            ${p.observacoes ? `<div style="margin-top:6px;"><strong>Obs:</strong> ${p.observacoes}</div>` : ''}
+            <div style="margin-top:6px;"><strong>Pago:</strong> ${pago ? 'Sim' : 'Não'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    bloco.innerHTML = `
+      ${headerHTML}
+      <div id="${listId}" class="grupo-list" data-grupo-index="${i}" style="margin-top:10px; min-height:40px;">
+        ${pedidosHTML}
+      </div>
+      <div style="margin-top:10px;">
+        <a href="${rotaUrl}" target="_blank" class="btn rota-link">🗺️ Abrir Rota Otimizada</a>
+      </div>
+    `;
+
+    container.appendChild(bloco);
+  });
+
+  // --- Inicializa Sortable em cada lista (permite mover entre grupos) ---
+  const listEls = container.querySelectorAll('.grupo-list');
+  listEls.forEach(listEl => {
+    // eslint-disable-next-line no-undef
+    new Sortable(listEl, {
+      group: 'entregas',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: function (evt) {
+        // Ao terminar o drag, atualiza totais e links das rotas
+        // evt.to é a lista de destino; evt.from lista origem; evt.item foi movido
+        updateAllGroupSummariesAndLinks();
+        console.log('movido', evt.item.dataset.row, 'para grupo', evt.to.dataset.grupoIndex);
+      }
+    });
+  });
+
+  // Delegado: quando marcar "Entregue" em um grupo, pega linhas atuais daquele grupo do DOM
+  container.querySelectorAll('.chk-entregue'); // garante que existam
+  container.removeEventListener && container.removeEventListener('change', onGroupEntregueChanged); // só por segurança
+  container.addEventListener('change', onGroupEntregueChanged);
+
+  // função local para tratar mudança de "entregue"
+  function onGroupEntregueChanged(e) {
+    const target = e.target;
+    if (!target.classList.contains('chk-entregue')) return;
+    const bloco = target.closest('.grupo-entregas');
+    if (!bloco) return;
+    const listEl = bloco.querySelector('.grupo-list');
+    const rows = getRowsFromListEl(listEl);
+    if (target.checked) {
+      // marcar todas do grupo como entregues (usa a função que faz Promise.all)
+      marcarComoEntregueByRows(rows);
+      // remove do DOM (comportamento anterior)
+      bloco.remove();
+    } else {
+      // Se desmarcou, opcional: você pode implementar lógica para desfazer na planilha
+      console.log('Desmarcou entregue no grupo', bloco.dataset.grupoIndex);
+    }
+  }
+
+  // atualiza totais e links com base no DOM atual
+  function updateAllGroupSummariesAndLinks() {
+    const gruposList = container.querySelectorAll('.grupo-entregas');
+    gruposList.forEach(grEl => {
+      const listEl = grEl.querySelector('.grupo-list');
+      const rows = getRowsFromListEl(listEl);
+      // recalcula total
+      let total = 0;
+      let allPaid = true;
+      rows.forEach(r => {
+        const p = window.pedidosByRow[r];
+        if (p) {
+          total += toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0);
+          if (!isTrue(p.pago)) allPaid = false;
+        }
+      });
+      const rotaTotalEl = grEl.querySelector('.rota-total');
+      const rotaPagoEl = grEl.querySelector('.rota-pago');
+      const countEl = grEl.querySelector('.grupo-count');
+      const rotaLink = grEl.querySelector('.rota-link');
+
+      if (rotaTotalEl) rotaTotalEl.textContent = `R$ ${fmt(total)}`;
+      if (rotaPagoEl) rotaPagoEl.textContent = allPaid ? 'Sim' : 'Não';
+      if (countEl) countEl.textContent = rows.length;
+
+      // atualiza href do link usando pedidos atuais do DOM
+      const grupoObjs = rows.map(r => window.pedidosByRow[r]).filter(Boolean);
+      if (rotaLink) {
+        rotaLink.href = gerarLinkGoogleMaps(grupoObjs);
+      }
+    });
+  }
+
+  // helper: obtem array de rows (strings/nums) de um elemento list (.grupo-list)
+  function getRowsFromListEl(listEl) {
+    if (!listEl) return [];
+    return Array.from(listEl.children).map(ch => ch.dataset.row).filter(r => r);
+  }
+
+  // inicializa os valores (caso o usuário não mova nada)
+  updateAllGroupSummariesAndLinks();
+}
 
 
 
   document.getElementById('btn-carregar').addEventListener('click', carregarPedidos);
+
+  // limpa botão/handler antigo caso exista (apenas para segurança/compatibilidade)
+try {
+  const oldBtn = document.getElementById('btn-salvar-grupos');
+  if (oldBtn) oldBtn.remove();
+  if (window.__saveGruposHandler) delete window.__saveGruposHandler;
+} catch (e) { console.warn('limpeza botao salvar error', e); }
+
   </script>
 
 </body>
+
+<!-- SortableJS para drag & drop entre listas -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 </html>
