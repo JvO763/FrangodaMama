@@ -569,3 +569,50 @@ select:focus {
   user-select: none;       /* impede selecionar o texto */
   pointer-events: none;    /* impede clicar/focar */
 }
+
+/* Garante layout correto do header do card */
+.card-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px;
+  position: relative;
+}
+
+/* Pedido-itens ocupa o espaço disponível e não empurra os botões para cima */
+.card-header > .pedido-itens {
+  flex: 1 1 auto;
+  min-width: 0; /* evita overflow e quebra de layout */
+  margin-right: 8px;
+}
+
+/* Força o botão editar a ficar à esquerda das checkboxes, visível e com z-index */
+.btn-edit {
+  order: 2;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  z-index: 50;          /* garante que fique acima se algo quiser cobrir */
+  margin-right: 100px;    /* espaço entre editar e checkboxes */
+}
+
+/* Checkboxes ficam no fim (à direita) e em linha */
+.card-header > .checkbox-container {
+  order: 3;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Protege contra overflow de texto que empurra os botões */
+.pedido-itens b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}

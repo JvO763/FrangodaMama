@@ -339,7 +339,7 @@
         var senha = document.getElementById("login-password").value;
 
         // Substitua pela URL do seu Apps Script
-        var url = "https://script.google.com/macros/s/AKfycbytJnSXTDfedod3d7yifl7GzuHf27qtOTsPJdcMdUltypu3yi2bOJpmAup6xh_AB8zByg/exec";
+        var url = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
 
         fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
           .then(res => res.json())
@@ -360,7 +360,7 @@
 
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbytJnSXTDfedod3d7yifl7GzuHf27qtOTsPJdcMdUltypu3yi2bOJpmAup6xh_AB8zByg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
         // --------------------------------------------------------------------
 
         const PRECO_FRANGO_ASSADO = 49.90;
@@ -436,76 +436,101 @@
         }
 
         // envia pedido
+        $$('#btn-add-pedido').off('click');
         $$('#btn-add-pedido').on('click', async () => {
           const nome = $$('#input-nome-cliente').val().trim();
           const endereco = $$('#input-endereco').val().trim();
           const numero = $$('#input-numero').val().trim();
           const cep = $$('#input-cep').val().trim();
-          const datetimeLocal = $$('#input-horario-entrega').val(); // ex: 2025-10-13T12:30
+          const datetimeLocal = $$('#input-horario-entrega').val();
           const refrigerantesText = $$('#input-refrigerantes').val().trim();
 
           const qtdFrango = $$('#chk-frango').prop('checked') ? parseInt($$('#qtd-frango').val()) || 0 : 0;
-          const qtdCoxa  = $$('#chk-coxa').prop('checked')  ? parseInt($$('#qtd-coxa').val())  || 0 : 0;
-          const qtdArroz = $$('#chk-arroz').prop('checked') ? parseInt($$('#qtd-arroz').val()) || 0 : 0; // <- declarado aqui
+          const qtdCoxa  = $$('#chk-coxa').prop('checked') ? parseInt($$('#qtd-coxa').val()) || 0 : 0;
+          const qtdArroz = $$('#chk-arroz').prop('checked') ? parseInt($$('#qtd-arroz').val()) || 0 : 0;
           const qtdRefri = parseRefrigerantes(refrigerantesText);
 
           const precoTotal = parseFloat($$('#input-preco-total').val()) || 0;
-          const pago = false;
-          const entregue = false;
+          const acrescimo = parseFloat($$('#input-acrescimo').val()) || 0;
+          const observacoes = $$('#input-obs').val().trim();
 
-          // valida: agora inclui qtdArroz
           if ((qtdFrango + qtdCoxa + qtdRefri + qtdArroz) === 0 || !nome || !endereco || !datetimeLocal) {
             app.dialog.alert('Preencha todos os campos obrigatórios e escolha ao menos um item.');
             return;
           }
 
+          // separa datetime-local em date/time
           const {date: data_entrega, time: horario_entrega} = splitDateTimeLocal(datetimeLocal);
 
+          // monta objeto a enviar
           const body = {
-            data_entrega: data_entrega,             // YYYY-MM-DD
-            horario_entrega: horario_entrega,       // HH:MM
+            data_entrega,
+            horario_entrega,
             qntd_frango: qtdFrango,
             qntd_sobrecoxa: qtdCoxa,
             qntd_refri: qtdRefri,
-            qntd_arroz: qtdArroz,                   // <- enviado
+            qntd_arroz: qtdArroz,
             nome_cliente: nome,
-            endereco: endereco,
-            numero: numero,
-            cep: cep,
-            status: 'agendado',
+            endereco,
+            numero,
+            cep,
             tipo_refrigerante: refrigerantesText,
-            observacoes: $$('#input-obs').val().trim(),
-            acrescimo: parseFloat($$('#input-acrescimo').val()) || 0.00,
-            pago: pago,
-            entregue: entregue
+            observacoes,
+            acrescimo,
+            preco_total: precoTotal
           };
 
           try {
-            console.log('Enviando pedido:', JSON.stringify(body));
-            // REMOVI mode: 'no-cors' para permitir ler resposta (recomendo)
-            // Converte objeto em application/x-www-form-urlencoded
-            const form = new URLSearchParams();
-            Object.entries(body).forEach(([k, v]) => {
-              // Atenção: evita undefined; transforma booleans/objetos em string
-              form.append(k, v === undefined || v === null ? '' : String(v));
-            });
+            // se estivermos editando, chama updateOrder
+            if (window.__editingRow) {
+              body.action = 'updateOrder';
+              body.row = window.__editingRow;
 
-            const res = await fetch(SCRIPT_URL, {
-              method: 'POST',
-              body: form // content-type será application/x-www-form-urlencoded por padrão
-            });
+              const form = new URLSearchParams();
+              Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
 
-            // tenta ler resposta JSON (se o Apps Script responder JSON)
-            let json = null;
-            try { json = await res.json(); } catch (e) { json = null; }
-            console.log('Resposta do script:', json || 'Resposta sem JSON acessível');
+              const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: form
+              });
 
+              const json = await (async () => { try { return await res.json(); } catch (e) { return null; } })();
+
+              if (json && json.sucesso) {
+                app.dialog.alert('Pedido atualizado com sucesso!');
+              } else {
+                console.warn('Resposta updateOrder:', json, res);
+                app.dialog.alert('Pedido atualizado (resposta não confirmada). Verifique o console.');
+              }
+
+              // limpa estado de edição
+              window.__editingRow = null;
+              const titleEl = document.querySelector('#popup-add-pedido .navbar .title');
+              if (titleEl) titleEl.textContent = 'Novo Pedido';
+            } else {
+              // criar novo pedido (comportamento anterior)
+              body.action = 'addOrder';
+              const form = new URLSearchParams();
+              Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
+
+              const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: form
+              });
+
+              // tenta ler resposta
+              let json = null;
+              try { json = await res.json(); } catch (e) { json = null; }
+              console.log('Resposta do script (add):', json || res);
+              app.dialog.alert('Pedido adicionado com sucesso!');
+            }
+
+            // fecha popup e limpa campos
             app.popup.close('#popup-add-pedido');
-            app.dialog.alert('Pedido adicionado com sucesso!');
-            // limpar campos
+
             $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
-            $$('#chk-coxa').prop('checked', false);  $$('#qtd-coxa').val(0).prop('disabled', true);
-            $$('#chk-arroz').prop('checked', false);  $$('#qtd-arroz').val(0).prop('disabled', true);
+            $$('#chk-coxa').prop('checked', false); $$('#qtd-coxa').val(0).prop('disabled', true);
+            $$('#chk-arroz').prop('checked', false); $$('#qtd-arroz').val(0).prop('disabled', true);
             $$('#input-refrigerantes').val('');
             $$('#input-nome-cliente').val('');
             $$('#input-endereco').val('');
@@ -515,10 +540,11 @@
             $$('#input-preco-total').val('');
             $$('#input-acrescimo').val('0.00');
             $$('#input-obs').val('');
-            // atualizar lista do dia
+
+            // atualiza a lista
             carregarPedidosDoDia();
           } catch (err) {
-            console.error('Erro ao enviar pedido:', err);
+            console.error('Erro ao enviar/atualizar pedido:', err);
             app.dialog.alert('Erro ao enviar pedido. Verifique a conexão ou o URL do script.');
           }
         });
@@ -591,9 +617,16 @@
               return;
             }
 
+            // mapa row -> pedido (útil para edição)
+            window.__pedidosMap = {}; 
+
+
             // monta cards — importantíssimo: usar p._sheetRow (linha da planilha) para data-row
             pedidosParaMostrar.forEach((p, i) => {
               const sheetRow = p._sheetRow || (i + 2); // fallback se não existir _sheetRow
+              // guarda objeto para edição posterior
+              window.__pedidosMap[sheetRow] = p;
+
               const qtdFrango = p.qntd_frango || p.qtd_frango || 0;
               const qtdCoxa = p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0;
               const qtdRefri = p.qntd_refri || p.qtd_refri || 0;
@@ -612,6 +645,8 @@
                     <div class="pedido-itens">
                       <b>${items.join(' • ')}</b>
                     </div>
+                  
+                    <a href="#" class="button button-small btn-edit" data-row="${sheetRow}">✏️ Editar</a>
                     <div class="checkbox-container">
                       <label class="checkbox-label">
                         <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
@@ -621,7 +656,7 @@
                         <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
                         <span>Pago</span>
                       </label>
-                    </div>
+                       </div>
                   </div>
                   <div class="card-content card-content-padding">
                     <p><b>Cliente:</b> ${p.nome_cliente || p.nome || '-'}</p>
@@ -663,6 +698,66 @@
                 $el.prop('checked', !valor);
               }
             });
+
+            // abre popup de edição quando clicar no botão editar de um card
+            $$('#produtos').off('click', '.btn-edit'); // garante que não duplique handlers
+            $$('#produtos').on('click', '.btn-edit', function (evt) {
+              evt.preventDefault();
+              const row = $$(this).data('row');
+              const pedido = window.__pedidosMap && window.__pedidosMap[row];
+              if (!pedido) {
+                app.dialog.alert('Dados do pedido não encontrados para edição.');
+                return;
+              }
+
+              // marca que estamos editando essa linha
+              window.__editingRow = row;
+
+              // altera título do popup pra indicar edição
+              const titleEl = document.querySelector('#popup-add-pedido .navbar .title');
+              if (titleEl) titleEl.textContent = 'Editar Pedido';
+
+              // preenche campos do popup com os valores do pedido
+              $$('#input-nome-cliente').val(pedido.nome_cliente || pedido.nome || '');
+              $$('#input-endereco').val(pedido.endereco || '');
+              $$('#input-numero').val(pedido.numero || '');
+              $$('#input-cep').val(pedido.cep || '');
+              // horário => se veio como "HH:MM" e data_entrega está presente, junta
+              if (pedido.horario_entrega && pedido.data_entrega) {
+                const pad = n => String(n).padStart(2,'0');
+                const dt = String(pedido.data_entrega).split('T')[0] || String(pedido.data_entrega);
+                // tenta colocar no formato datetime-local (sem segundos)
+                $$('#input-horario-entrega').val(`${dt}T${pedido.horario_entrega}`);
+              } else {
+                $$('#input-horario-entrega').val('');
+              }
+
+              // quantidades e checkboxes
+              const qtdFrango = Number(pedido.qntd_frango || pedido.qtd_frango || 0);
+              const qtdCoxa   = Number(pedido.qntd_sobrecoxa || pedido.qtd_sobrecoxa || 0);
+              const qtdArroz  = Number(pedido.qntd_arroz || pedido.qtd_arroz || 0);
+              const tipoRefri = pedido.tipo_refrigerante || pedido.tipo_refri || pedido.tipoRefri || pedido.tipoRefri || '';
+
+              $$('#chk-frango').prop('checked', qtdFrango > 0);
+              $$('#qtd-frango').val(qtdFrango).prop('disabled', !(qtdFrango > 0));
+
+              $$('#chk-coxa').prop('checked', qtdCoxa > 0);
+              $$('#qtd-coxa').val(qtdCoxa).prop('disabled', !(qtdCoxa > 0));
+
+              $$('#chk-arroz').prop('checked', qtdArroz > 0);
+              $$('#qtd-arroz').val(qtdArroz).prop('disabled', !(qtdArroz > 0));
+
+              $$('#input-refrigerantes').val(tipoRefri);
+              $$('#input-acrescimo').val((pedido.acrescimo !== undefined && pedido.acrescimo !== null) ? String(pedido.acrescimo) : '0.00');
+              $$('#input-obs').val(pedido.observacoes || '');
+
+              // recalcula preço só visualmente
+              atualizarPrecoTotal();
+
+              // abre popup
+              app.popup.open('#popup-add-pedido');
+            });
+
 
           } catch (err) {
             console.error('❌ Erro ao carregar pedidos do dia:', err);
@@ -730,6 +825,17 @@
           document.getElementById("input-cep").value = "Erro";
         }
       });
+
+    // quando o popup fechar, limpa estado de edição e restaura título
+    document.querySelectorAll('#popup-add-pedido .popup-close, #popup-add-pedido .link.popup-close').forEach(el => {
+      el.addEventListener('click', () => {
+        window.__editingRow = null;
+        const titleEl = document.querySelector('#popup-add-pedido .navbar .title');
+        if (titleEl) titleEl.textContent = 'Novo Pedido';
+      });
+    });
+
+
 
     </script>
 
