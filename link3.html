@@ -256,6 +256,9 @@ function hideLoading() {
   const container = document.getElementById('movimentos');
   container.innerHTML = '';
 
+  // calcula soma dos gastos a partir da lista recebida
+  const sumGastos = (itemsGastos || []).reduce((s, g) => s + Number(g.valor || 0), 0);
+
   // mostra card resumo de ganhos se NÃO estivermos apenas em 'gastos'
   if(viewType !== 'gastos'){
     const card = document.createElement('div'); card.className='card';
@@ -263,17 +266,23 @@ function hideLoading() {
     container.appendChild(card);
   }
 
+  // --- novo: mostrar também o card de Gastos Totais quando for 'both' ou 'gastos' ---
+  if(viewType !== 'ganhos'){
+    const cardGastos = document.createElement('div'); cardGastos.className='card';
+    // mostramos o valor como negativo (sinal) e com classe de estilo para vermelho
+    const valorStr = `R$ -${formatMoney(sumGastos)}`;
+    cardGastos.innerHTML = `<div class="card-content"><div><strong>Gastos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-gasto">${valorStr}</div></div>`;
+    container.appendChild(cardGastos);
+  }
+
   // Se precisamos listar pedidos individualmente (quando viewType === 'ganhos' OU 'both')
   if(viewType === 'ganhos' || viewType === 'both'){
-    // se não houver pedidos, exibe mensagem (apenas se a intenção for mostrar ganhos)
     if(!pedidosList || pedidosList.length === 0){
-      // só mostra a mensagem quando exclusivamente mostrando ganhos; quando for 'both', vamos continuar e mostrar gastos também
       if(viewType === 'ganhos'){
         container.innerHTML += `<div class="empty">Nenhum ganho (pedido) no período.</div>`;
         return;
       }
     } else {
-      // lista pedidos (se houver)
       pedidosList.slice()
         .sort((a,b)=> new Date(b.data_pedido || b.data_entrega || b.date) - new Date(a.data_pedido || a.data_entrega || a.date))
         .forEach(p => {
@@ -282,13 +291,11 @@ function hideLoading() {
           const dataStr = p.data_pedido || p.data_entrega || p.data || '';
           const preco = Number(p.preco_total || p.preco || p.precoTotal || 0);
 
-          // quantidades (garantir números)
           const qFrango = Number(p.qntd_frango || p.qtd_frango || p.qntdFrango || 0);
           const qCoxa   = Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0);
           const qRefri  = Number(p.qntd_refri || p.qtd_refri || 0);
           const qArroz  = Number(p.qntd_arroz || p.qtd_arroz || 0);
 
-          // acrescimo/desconto (pode vir com nome diferente)
           const acrescimoRaw = (p.acrescimo !== undefined) ? p.acrescimo : (p['acrescimo/desconto'] !== undefined ? p['acrescimo/desconto'] : (p.acrescimo_desconto || 0));
           const acrescimoNum = Number(acrescimoRaw || 0);
           const acrescimoStr = (acrescimoNum === 0) ? 'R$ 0,00' : ((acrescimoNum > 0) ? `+ R$ ${formatMoney(acrescimoNum)}` : `- R$ ${formatMoney(Math.abs(acrescimoNum))}`);
@@ -355,6 +362,7 @@ function hideLoading() {
     container.appendChild(card);
   });
 }
+
 
     // APPLY FILTERS: busca gastos, soma de ganhos e (se preciso) lista de pedidos
     async function applyFilters(){
