@@ -9,51 +9,624 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <!-- Color theme for statusbar (Android only) -->
     <meta name="theme-color" content="#2196f3">
-    <!-- Your app title -->
-    <title>My App</title>
-    <!-- Path to Framework7 Library Bundle CSS -->
+    <title>Frango da Mama — Financeiro</title>
     <link rel="stylesheet" href="lib/framework7-bundle.min.css">
-    <!-- CSS PERSONALIZADO PARA MENU-->
     <link rel="stylesheet" href="css/personalizado.css">
-    <!--Ícones Material Design-->
     <link rel="stylesheet" href="css/materialdesignicons.min.css">
-
+    <link rel="stylesheet" href="css/remixicon.css">
+    <link rel="stylesheet" href="css/link3.css">
 
 </head>
 
 <body>
-    <!-- App root element -->
     <div id="app">
-
-        <!-- Your main view, should have "view-main" class -->
+                <!-- Your main view, should have "view-main" class -->
         <div class="view view-main">
-            <!-- Initial Page, "data-name" contains page name -->
-            <div data-name="link3" class="page">
+          <div class="toolbar toolbar-bottom">
+            <div class="toolbar-inner display-flex">
+              <a href="/loadingindex/" class="tab-link link"><i class="ri-restaurant-line"></i><span>Pedidos</span></a>
+              <a href="/loadinglink2/" class="tab-link link"><i class="ri-map-pin-line"></i><span>Rotas</span></a>
+              <a href="/loadinglink3/" class="tab-link link active"><i class="ri-user-line"></i><span>Financeiro</span></a>
+              <a href="/loadinglink4/" class="tab-link link"><i class="ri-settings-3-line"></i><span>Configurações</span></a>
+            </div>
+          </div>
+            <div data-name="link3" class="page color-theme-blue">
 
-                <!-- Top Navbar -->
                 <div class="navbar">
                     <div class="navbar-bg"></div>
                     <div class="navbar-inner justify-content-center">
-                        <div class="title ">Link 3</div>
+                        <div class="left">
+                          <!-- botão adicionar agora à esquerda -->
+                          <a href="#" class="link icon-only" id="btn-open-add"><i class="ri-add-line"></i></a>
+                        </div>
+
+                        <div class="title">Financeiro</div>
+
+                        <div class="right">
+                          <!-- botão filtro à direita -->
+                          <a href="#" class="link icon-only" id="btn-open-filter" title="Filtros"><i class="ri-filter-3-line"></i></a>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Scrollable page content -->
                 <div class="page-content">
                     <div class="block">
-                        Conteúdo do link 3
+                        <!-- resumo e lista -->
+                        <div id="summary" class="summary">Total: R$ 0.00</div>
+                        <div id="movimentos" class="mov-list" style="margin-top:12px;"></div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Popup para adicionar/editar gasto (Framework7 popup) -->
+        <div class="popup popup-fin" id="popup-add-gasto">
+          <div class="view">
+            <div class="page">
+              <div class="navbar">
+                <div class="navbar-inner">
+                  <div class="title">Novo Lançamento</div>
+                  <div class="right"><a href="#" class="link popup-close icon-only"><i class="ri-close-line"></i></a></div>
+                </div>
+              </div>
+              <div class="page-content">
+                <div class="list no-hairlines-md">
+                  <ul>
+                    <!-- tipo fixo em 'gasto' (campo oculto) -->
+                    <input type="hidden" id="inp-tipo" value="gasto" />
+
+                    <li class="item-content item-input">
+                      <div class="item-inner"><div class="item-title item-label">Valor (R$)</div>
+                        <div class="item-input-wrap"><input type="number" id="inp-valor" step="0.01" /></div></div>
+                    </li>
+                    <li class="item-content item-input">
+                      <div class="item-inner"><div class="item-title item-label">Data</div>
+                        <div class="item-input-wrap"><input type="date" id="inp-data" /></div></div>
+                    </li>
+                    <li class="item-content item-input">
+                      <div class="item-inner"><div class="item-title item-label">Título</div>
+                        <div class="item-input-wrap"><input type="text" id="inp-titulo" /></div></div>
+                    </li>
+                    <li class="item-content item-input">
+                      <div class="item-inner"><div class="item-title item-label">Observação</div>
+                        <div class="item-input-wrap"><textarea id="inp-obs"></textarea></div></div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="block" style="display:flex; gap:8px; justify-content:flex-end;">
+                  <a href="#" class="button" id="btn-save-gasto">Salvar</a>
+                  <a href="#" class="button button-outline popup-close">Cancelar</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating filter popup (custom) -->
+        <div id="filter-popup" role="dialog" aria-label="Filtros">
+          <div class="fp-header">
+            <div class="title">Filtros</div>
+            <button id="btn-close-filter" class="fp-close" title="Fechar">✖</button>
+          </div>
+
+          <div class="filter-row">
+            <div>
+              <label>De</label><br>
+              <input type="date" id="f-start">
+            </div>
+            <div>
+              <label>Até</label><br>
+              <input type="date" id="f-end">
+            </div>
+
+            <div class="controls">
+              <label><input type="radio" name="viewType" value="both" checked> Ambos</label>
+              <label><input type="radio" name="viewType" value="gastos"> Gastos</label>
+              <label><input type="radio" name="viewType" value="ganhos"> Ganhos</label>
+            </div>
+
+            <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+              <a href="#" class="button" id="btn-apply">Aplicar</a>
+            </div>
+          </div>
+        </div>
+
     </div>
-    <!-- Path to Framework7 Library Bundle JS-->
+
     <script type="text/javascript" src="lib/framework7-bundle.min.js"></script>
-	<!-- jQuery -->
-	<script type="text/javascript" src="lib/jquery-3.7.0.min.js"></script>	
-    <!-- Roteamento do app-->
+	<script type="text/javascript" src="lib/jquery-3.7.0.min.js"></script>
     <script type="text/javascript" src="js/routes.js"></script>
     <script src="cordova.js"></script>
+
+    <script>
+    (function(){
+      const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwocyP7Zv7sEdIvKy6-sYqVLrGfhSbWafg8FvXQUkGucrursUjuujCErtkysYkVhqYXWg/exec';
+      const $$ = Dom7;
+
+      // ---------- Loading util (Framework7 if available, senão fallback DOM) ----------
+function showLoading(text) {
+  try {
+    if (window.app && app.preloader && typeof app.preloader.show === 'function') {
+      // Framework7 preloader (sem texto)
+      app.preloader.show();
+      return;
+    }
+  } catch (e) { /* ignore */ }
+
+  // fallback: criar overlay simples
+  if (!document.getElementById('sys-loader')) {
+    const ov = document.createElement('div');
+    ov.id = 'sys-loader';
+    ov.style.position = 'fixed';
+    ov.style.left = '0';
+    ov.style.top = '0';
+    ov.style.right = '0';
+    ov.style.bottom = '0';
+    ov.style.background = 'rgba(0,0,0,0.45)';
+    ov.style.zIndex = 99999;
+    ov.style.display = 'flex';
+    ov.style.alignItems = 'center';
+    ov.style.justifyContent = 'center';
+    ov.innerHTML = `<div style="background:#fff;padding:14px 18px;border-radius:10px;display:flex;align-items:center;gap:12px">
+      <div class="spin" style="width:22px;height:22px;border:3px solid #ddd;border-top-color:#333;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="font-weight:600;color:#222">${text||'Carregando...'}</div>
+    </div>`;
+    document.body.appendChild(ov);
+
+    // keyframes
+    const s = document.createElement('style');
+    s.innerHTML = `@keyframes spin{to{transform:rotate(360deg)}}`;
+    document.head.appendChild(s);
+  } else {
+    document.getElementById('sys-loader').style.display = 'flex';
+  }
+}
+
+function hideLoading() {
+  try {
+    if (window.app && app.preloader && typeof app.preloader.hide === 'function') {
+      app.preloader.hide();
+      return;
+    }
+  } catch(e) { /* ignore */ }
+
+  const ov = document.getElementById('sys-loader');
+  if (ov) ov.style.display = 'none';
+}
+
+
+      function formatMoney(v){ return Number(Math.abs(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+    /* ---------- NEW / REPLACEMENT JS for showing pedidos cards ---------- */
+
+    // Fetch gastos (mantém sua função atual)
+    async function fetchGastos(start, end){
+    const params = new URLSearchParams({ action: 'getGastos', start, end });
+    const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+    const json = await res.json();
+    return json.gastos || [];
+    }
+
+    async function addGasto(obj){
+        const form = new URLSearchParams();
+        form.append('action','addGasto');
+        Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
+        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+        return await res.json();
+      }
+
+      async function updateGasto(obj){
+        const form = new URLSearchParams();
+        form.append('action','updateGasto');
+        Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
+        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+        return await res.json();
+      }
+
+      async function deleteGasto(id){
+        const form = new URLSearchParams();
+        form.append('action','deleteGasto');
+        form.append('id', id);
+        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+        return await res.json();
+      }
+
+    // Antes: fetchGanhosSum apenas retornava soma.
+    // Agora: mantemos fetchGanhosSum, e adicionamos fetchPedidosRange para obter lista de pedidos.
+    async function fetchGanhosSum(start, end){
+    const params = new URLSearchParams({ action: 'getPedidosSum', start, end });
+    const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+    const json = await res.json();
+    return Number(json.sum || 0);
+    }
+
+    // NEW: busca lista de pedidos no intervalo (para exibir cards individuais)
+    async function fetchPedidosRange(start, end){
+    // Recomendado: o Apps Script entenda action=getPedidosRange&start=YYYY-MM-DD&end=YYYY-MM-DD
+    // Se seu backend já tiver algo semelhante, apenas ajuste a action/url aqui.
+    const params = new URLSearchParams({ action: 'getPedidosRange', start, end });
+    const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+    const json = await res.json();
+    // espera um array json.pedidos
+    return json.pedidos || [];
+    }
+
+    // RENDER: agora mostra também cards dos pedidos (ganhos) quando for solicitado
+    function renderMovimentos(itemsGastos, ganhosSum, pedidosList, viewType){
+  const container = document.getElementById('movimentos');
+  container.innerHTML = '';
+
+  // mostra card resumo de ganhos se NÃO estivermos apenas em 'gastos'
+  if(viewType !== 'gastos'){
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `<div class="card-content"><div><strong>Ganhos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-ganho">R$ ${formatMoney(ganhosSum)}</div></div>`;
+    container.appendChild(card);
+  }
+
+  // Se precisamos listar pedidos individualmente (quando viewType === 'ganhos' OU 'both')
+  if(viewType === 'ganhos' || viewType === 'both'){
+    // se não houver pedidos, exibe mensagem (apenas se a intenção for mostrar ganhos)
+    if(!pedidosList || pedidosList.length === 0){
+      // só mostra a mensagem quando exclusivamente mostrando ganhos; quando for 'both', vamos continuar e mostrar gastos também
+      if(viewType === 'ganhos'){
+        container.innerHTML += `<div class="empty">Nenhum ganho (pedido) no período.</div>`;
+        return;
+      }
+    } else {
+      // lista pedidos (se houver)
+      pedidosList.slice()
+        .sort((a,b)=> new Date(b.data_pedido || b.data_entrega || b.date) - new Date(a.data_pedido || a.data_entrega || a.date))
+        .forEach(p => {
+          const card = document.createElement('div'); card.className='card';
+          const cliente = p.nome_cliente || p.nome || '-';
+          const dataStr = p.data_pedido || p.data_entrega || p.data || '';
+          const preco = Number(p.preco_total || p.preco || p.precoTotal || 0);
+
+          // quantidades (garantir números)
+          const qFrango = Number(p.qntd_frango || p.qtd_frango || p.qntdFrango || 0);
+          const qCoxa   = Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0);
+          const qRefri  = Number(p.qntd_refri || p.qtd_refri || 0);
+          const qArroz  = Number(p.qntd_arroz || p.qtd_arroz || 0);
+
+          // acrescimo/desconto (pode vir com nome diferente)
+          const acrescimoRaw = (p.acrescimo !== undefined) ? p.acrescimo : (p['acrescimo/desconto'] !== undefined ? p['acrescimo/desconto'] : (p.acrescimo_desconto || 0));
+          const acrescimoNum = Number(acrescimoRaw || 0);
+          const acrescimoStr = (acrescimoNum === 0) ? 'R$ 0,00' : ((acrescimoNum > 0) ? `+ R$ ${formatMoney(acrescimoNum)}` : `- R$ ${formatMoney(Math.abs(acrescimoNum))}`);
+
+          const obs = p.observacoes || p.observacao || p.tipo_refrigerante || '';
+
+          card.innerHTML = `
+            <div class="card-content">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:160px;">
+                  <div style="font-weight:700">${cliente}</div>
+                  <div style="font-size:0.9rem; color:#666; margin-top:6px">${obs}</div>
+                  <div style="font-size:0.85rem; color:#999; margin-top:6px">${dataStr}</div>
+                </div>
+
+                <div style="min-width:160px; text-align:right;">
+                  <div style="font-weight:700; font-size:1.05rem;" class="mov-tipo-ganho">R$ ${formatMoney(preco)}</div>
+
+                  <div style="margin-top:8px; font-size:0.92rem; color:#ccc; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                    <div>🐔 Frango: <strong>${qFrango}</strong></div>
+                    <div>🍗 Coxa-Sobrecoxa: <strong>${qCoxa}</strong></div>
+                    <div>🥤 Refri: <strong>${qRefri}</strong></div>
+                    <div>🍚 Arroz: <strong>${qArroz}</strong></div>
+                    <div style="margin-top:6px;">Acrésc/Desc: <strong>${acrescimoStr}</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+    }
+  }
+
+  // --- agora lista gastos (se for 'gastos' ou 'both') ---
+  const listado = (itemsGastos||[]).slice().sort((a,b)=> new Date(b.data)-new Date(a.data));
+  if(listado.length === 0 && viewType === 'gastos'){
+    container.innerHTML += `<div class="empty">Nenhum gasto no período.</div>`;
+    return;
+  }
+  listado.forEach(g => {
+    const card = document.createElement('div'); card.className='card';
+    const tipoClass = 'mov-tipo-gasto';
+    const valorNum = Number(g.valor || 0);
+    const valorStr = `R$ -${formatMoney(valorNum)}`;
+    card.innerHTML = `
+      <div class="card-content">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:700">${g.titulo || 'Gasto'}</div>
+            <div style="font-size:0.9rem; color:#666">${g.observacao||''}</div>
+            <div style="font-size:0.85rem; color:#999; margin-top:6px">${g.data||''}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="${tipoClass} mov-valor">${valorStr}</div>
+            <div style="margin-top:8px;">
+              <button class="small-btn btn-edit-gasto" data-id="${g.ID}">Editar</button>
+              <button class="small-btn btn-del-gasto" data-id="${g.ID}">Apagar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+    // APPLY FILTERS: busca gastos, soma de ganhos e (se preciso) lista de pedidos
+    async function applyFilters(){
+    const start = document.getElementById('f-start').value;
+    const end = document.getElementById('f-end').value;
+    const viewType = document.querySelector('input[name="viewType"]:checked').value;
+
+    // sempre buscar gastos quando precisamos mostrá-los (gastos ou ambos)
+    const gastos = (viewType === 'ganhos') ? [] : await fetchGastos(start, end);
+    const sumGastos = gastos.reduce((s,g)=> s + Number(g.valor||0), 0);
+    const ganhosSum = (viewType !== 'gastos') ? await fetchGanhosSum(start, end) : 0;
+
+    // SE pede mostrar pedidos (ganhos ou ambos), buscar lista de pedidos
+    let pedidosList = [];
+    if(viewType === 'ganhos' || viewType === 'both') {
+        // tenta buscar lista. Requererá handler no Apps Script (getPedidosRange)
+        try {
+        pedidosList = await fetchPedidosRange(start, end);
+        } catch (e) {
+        console.warn('Erro ao obter lista de pedidos:', e);
+        pedidosList = [];
+        }
+    }
+
+    // compute total: gastos negativos
+    let total = 0;
+    if(viewType === 'both'){
+        total = ganhosSum - sumGastos;
+    } else if(viewType === 'gastos'){
+        total = -sumGastos;
+    } else { // ganhos
+        total = ganhosSum;
+    }
+
+    // atualiza texto do total (apresenta sinal negativo quando necessário)
+    const totalStr = (total < 0) ? `- R$ ${formatMoney(Math.abs(total))}` : `R$ ${formatMoney(total)}`;
+    document.getElementById('summary').textContent = `Total: ${totalStr}`;
+
+    // renderiza: passamos gastos, soma ganhos e lista de pedidos
+    renderMovimentos(gastos, ganhosSum, pedidosList, viewType);
+
+    // fecha popup filtro se aberto
+    hideFilterPopup();
+    }
+
+
+      // Init UI bindings
+      document.getElementById('btn-apply').addEventListener('click', applyFilters);
+
+      // abrir popup de adicionar (agora no botão da esquerda)
+      document.getElementById('btn-open-add').addEventListener('click', function(e){
+        e.preventDefault();
+        const titleEl = document.querySelector('#popup-add-gasto .navbar .title');
+        if(titleEl) titleEl.textContent = 'Novo Lançamento';
+        document.getElementById('inp-tipo').value = 'gasto';
+        document.getElementById('inp-valor').value = '';
+        document.getElementById('inp-data').value = new Date().toISOString().slice(0,10);
+        document.getElementById('inp-titulo').value = '';
+        document.getElementById('inp-obs').value = '';
+        window.__editingGastoId = null;
+        if(window.app && app.popup) app.popup.open('#popup-add-gasto');
+      });
+
+      // salvar gasto
+      document.getElementById('btn-save-gasto').addEventListener('click', async function(){
+        const tipo = 'gasto';
+        const valor = parseFloat(document.getElementById('inp-valor').value || 0);
+        const data = document.getElementById('inp-data').value;
+        const titulo = document.getElementById('inp-titulo').value.trim();
+        const obs = document.getElementById('inp-obs').value.trim();
+
+        if(!data || isNaN(valor) || valor <= 0 || !titulo){
+          if(window.app && app.dialog) app.dialog.alert('Preencha data, título e valor (>0).');
+          else alert('Preencha data, título e valor (>0).');
+          return;
+        }
+
+        const body = { tipo, valor, data, titulo, observacao: obs };
+
+        try {
+  // mostra loading
+  showLoading('Salvando...');
+
+  if(window.__editingGastoId){
+    body.id = window.__editingGastoId;
+    const r = await updateGasto(body);
+    hideLoading();
+    if(r && r.sucesso) {
+      if(window.app && app.dialog) app.dialog.alert('Gasto atualizado.');
+      else alert('Gasto atualizado.');
+    } else {
+      if(window.app && app.dialog) app.dialog.alert('Resposta inesperada. Veja console.');
+      else alert('Resposta inesperada. Veja console.');
+    }
+  } else {
+    const r = await addGasto(body);
+    hideLoading();
+    if(r && r.sucesso) {
+      if(window.app && app.dialog) app.dialog.alert('Gasto adicionado.');
+      else alert('Gasto adicionado.');
+    } else {
+      if(window.app && app.dialog) app.dialog.alert('Resposta inesperada. Veja console.');
+      else alert('Resposta inesperada. Veja console.');
+    }
+  }
+  if(window.app && app.popup) app.popup.close('#popup-add-gasto');
+  await applyFilters();
+} catch (err) {
+  hideLoading();
+  console.error(err);
+  if(window.app && app.dialog) app.dialog.alert('Erro ao salvar. Veja console.');
+  else alert('Erro ao salvar. Veja console.');
+}
+      });
+
+      // editar / apagar via delegação
+      document.getElementById('movimentos').addEventListener('click', async function(e){
+        const el = e.target;
+        if(el.classList.contains('btn-edit-gasto')){
+          const id = el.dataset.id;
+          const start = document.getElementById('f-start').value;
+          const end = document.getElementById('f-end').value;
+          const gastos = await fetchGastos(start,end);
+          const g = gastos.find(x => String(x.ID) === String(id));
+          if(!g){ if(window.app && app.dialog) app.dialog.alert('Gasto não encontrado.'); return; }
+          window.__editingGastoId = g.ID;
+          const titleEl = document.querySelector('#popup-add-gasto .navbar .title');
+          if(titleEl) titleEl.textContent = 'Editar Lançamento';
+          document.getElementById('inp-tipo').value = 'gasto';
+          document.getElementById('inp-valor').value = g.valor;
+          document.getElementById('inp-data').value = g.data;
+          document.getElementById('inp-titulo').value = g.titulo || '';
+          document.getElementById('inp-obs').value = g.observacao || '';
+          if(window.app && app.popup) app.popup.open('#popup-add-gasto');
+        } else if(el.classList.contains('btn-del-gasto')){
+          const id = el.dataset.id;
+          if(window.app && app.dialog) {
+            app.dialog.confirm('Apagar esse gasto?', async () => {
+              showLoading('Apagando...');
+try {
+  const r = await deleteGasto(id);
+  hideLoading();
+  if(r && r.sucesso) {
+    if(window.app && app.dialog) app.dialog.alert('Gasto apagado.');
+    else alert('Gasto apagado.');
+    applyFilters();
+  } else {
+    if(window.app && app.dialog) app.dialog.alert('Erro ao apagar. Veja console.');
+    else alert('Erro ao apagar. Veja console.');
+  }
+} catch(err) {
+  hideLoading();
+  console.error(err);
+  if(window.app && app.dialog) app.dialog.alert('Erro ao apagar. Veja console.');
+  else alert('Erro ao apagar. Veja console.');
+}
+
+            });
+          } else {
+            if(confirm('Apagar esse gasto?')) {
+              showLoading('Apagando...');
+try {
+  const r = await deleteGasto(id);
+  hideLoading();
+  if(r && r.sucesso) {
+    if(window.app && app.dialog) app.dialog.alert('Gasto apagado.');
+    else alert('Gasto apagado.');
+    applyFilters();
+  } else {
+    if(window.app && app.dialog) app.dialog.alert('Erro ao apagar. Veja console.');
+    else alert('Erro ao apagar. Veja console.');
+  }
+} catch(err) {
+  hideLoading();
+  console.error(err);
+  if(window.app && app.dialog) app.dialog.alert('Erro ao apagar. Veja console.');
+  else alert('Erro ao apagar. Veja console.');
+}
+
+            }
+          }
+        }
+      });
+
+      /* ---------- Filter popup controls (fixado/resistente) ---------- */
+      const filterPopup = document.getElementById('filter-popup');
+      const filterToggleBtn = document.getElementById('btn-open-filter');
+      const filterCloseBtn = document.getElementById('btn-close-filter');
+
+      // segurança: se não achar elementos, cria logs
+      if (!filterPopup) console.warn('filter-popup element not found');
+      if (!filterToggleBtn) console.warn('btn-open-filter element not found');
+      if (!filterCloseBtn) console.warn('btn-close-filter element not found');
+
+      // garante z-index alto (em caso de sobreposição)
+      if (filterPopup) {
+        filterPopup.style.zIndex = '9999';
+        filterPopup.style.display = 'none';
+      }
+
+      function showFilterPopup(){
+        if(!filterPopup) return;
+        // mostra com pequena animação
+        filterPopup.style.display = 'block';
+        filterPopup.style.opacity = '0';
+        filterPopup.style.transform = 'translateY(-6px)';
+        requestAnimationFrame(() => {
+          filterPopup.style.transition = 'opacity 160ms ease, transform 160ms ease';
+          filterPopup.style.opacity = '1';
+          filterPopup.style.transform = 'translateY(0)';
+        });
+      }
+      function hideFilterPopup(){
+        if(!filterPopup) return;
+        filterPopup.style.transition = 'opacity 120ms ease, transform 120ms ease';
+        filterPopup.style.opacity = '0';
+        filterPopup.style.transform = 'translateY(-6px)';
+        setTimeout(() => {
+          filterPopup.style.display = 'none';
+        }, 130);
+      }
+
+      // abre ao clicar no botão (evita propagation para o window listener)
+      filterToggleBtn && filterToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Filtro: botão clicado');
+        // toggle
+        if (filterPopup && filterPopup.style.display === 'block') hideFilterPopup();
+        else showFilterPopup();
+      });
+
+      // fechar via botão X
+      filterCloseBtn && filterCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideFilterPopup();
+      });
+
+      // clicar fora fecha: só fecha se o alvo não for o botão de abrir e nem dentro do painel
+      window.addEventListener('click', function(ev){
+        if (!filterPopup) return;
+        const isOpen = filterPopup.style.display === 'block';
+        if (!isOpen) return;
+        const clickedInsidePanel = filterPopup.contains(ev.target);
+        const clickedToggle = filterToggleBtn && filterToggleBtn.contains(ev.target);
+        if (!clickedInsidePanel && !clickedToggle) {
+          hideFilterPopup();
+        }
+      });
+
+      // também fecha com ESC
+      window.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') hideFilterPopup();
+      });
+
+
+      // on load: set date defaults (last 7 days) and apply
+      (function init(){
+        const d = new Date();
+        const end = d.toISOString().slice(0,10);
+        d.setDate(d.getDate()-7);
+        const start = d.toISOString().slice(0,10);
+        // set inputs (both in the floating filters)
+        document.getElementById('f-start').value = start;
+        document.getElementById('f-end').value = end;
+        applyFilters();
+      })();
+
+    })();
+    </script>
+
 </body>
 
 </html>

@@ -222,7 +222,7 @@
             <div class="toolbar-inner display-flex">
               <a href="/loadingindex/" class="tab-link link active"><i class="ri-restaurant-line"></i><span>Pedidos</span></a>
               <a href="/loadinglink2/" class="tab-link link"><i class="ri-map-pin-line"></i><span>Rotas</span></a>
-              <a href="/loadinglink3/" class="tab-link link"><i class="ri-user-line"></i><span>Clientes</span></a>
+              <a href="/loadinglink3/" class="tab-link link"><i class="ri-user-line"></i><span>Financeiro</span></a>
               <a href="/loadinglink4/" class="tab-link link"><i class="ri-settings-3-line"></i><span>Configurações</span></a>
             </div>
           </div>
@@ -248,6 +248,44 @@
         </div>
       </div>
 
+    <!-- Production widget (floating) -->
+    <div id="production-widget" aria-hidden="false">
+      <div id="production-panel" role="dialog" aria-label="Produção e vendas do dia">
+        <div class="prod-row"><div class="prod-label">🐔 Frango</div><div class="prod-value" id="pv-frango">0 / 0</div></div>
+        <div class="prod-row"><div class="prod-label">🍗 Coxa</div><div class="prod-value" id="pv-coxa">0 / 0</div></div>
+        <div class="prod-row"><div class="prod-label">🥤 Refrigerante</div><div class="prod-value" id="pv-refri">0 / 0</div></div>
+
+        <div class="actions">
+          <div style="display:flex; gap:6px;">
+            <button id="btn-edit-produzidos" class="small-btn">Editar</button>
+            <!-- <button id="btn-reset-produzidos" class="small-btn" title="Limpar produzidos do dia">Reset</button> -->
+          </div>
+          <button id="btn-close-productions" class="link-text">❌</button>
+        </div>
+
+        <div id="produzidos-edit" style="display:none; margin-top:8px;">
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <label style="min-width:80px;">🐔 Frangos</label>
+            <input type="number" id="inp-prod-frango" min="0" value="0">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <label style="min-width:80px;">🍗 Coxas</label>
+            <input type="number" id="inp-prod-coxa" min="0" value="0">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="min-width:80px;">🥤 Refris</label>
+            <input type="number" id="inp-prod-refri" min="0" value="0">
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+            <button id="btn-save-produzidos" class="small-btn">Salvar</button>
+            <button id="btn-cancel-produzidos" class="small-btn">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="production-toggle" title="Produção e Vendas">📊</div>
+    </div>
+  
     <!-- Path to Framework7 Library Bundle JS-->
     <script type="text/javascript" src="lib/framework7-bundle.min.js"></script>
 	  <!-- jQuery -->
@@ -758,6 +796,8 @@
               app.popup.open('#popup-add-pedido');
             });
 
+            // atualiza o widget de produção (mostra vendidos calculados)
+            if (typeof updateProductionWidget === 'function') updateProductionWidget();
 
           } catch (err) {
             console.error('❌ Erro ao carregar pedidos do dia:', err);
@@ -800,6 +840,123 @@
 
         // expose carregarPedidosDoDia to global (in case other scripts call it)
         window.carregarPedidosDoDia = carregarPedidosDoDia;
+        /* ---------- Production widget logic ---------- */
+
+      function getTodayKey() {
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+        const dateStr = new Date(now.getTime() - offsetMs).toISOString().slice(0,10);
+        return dateStr;
+      }
+      function storageKeyFor(dateStr){ return `produzidos:${dateStr}`; }
+
+      function getProducedCounts(dateStr) {
+        const key = storageKeyFor(dateStr || getTodayKey());
+        const raw = sessionStorage.getItem(key);
+        if(!raw) return { frango:0, coxa:0, refri:0 };
+        try { return JSON.parse(raw); } catch(e){ return { frango:0, coxa:0, refri:0 }; }
+      }
+      function setProducedCounts(dateStr, obj){
+        const key = storageKeyFor(dateStr || getTodayKey());
+        sessionStorage.setItem(key, JSON.stringify({
+          frango: Number(obj.frango||0),
+          coxa: Number(obj.coxa||0),
+          refri: Number(obj.refri||0)
+        }));
+      }
+
+      /* soma quantos foram vendidos no dia a partir de window.__pedidosMap (preenchido por carregarPedidosDoDia) */
+      function computeSoldCounts() {
+        const map = window.__pedidosMap || {};
+        let sold = { frango:0, coxa:0, refri:0 };
+        Object.values(map).forEach(p => {
+          sold.frango += Number(p.qntd_frango || p.qtd_frango || 0) || 0;
+          sold.coxa  += Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0) || 0;
+          sold.refri += Number(p.qntd_refri || p.qtd_refri || 0) || 0;
+        });
+        return sold;
+      }
+
+      function updateProductionWidget() {
+        const dateStr = getTodayKey();
+        const prod = getProducedCounts(dateStr);
+        const sold = computeSoldCounts();
+
+        const elFrango = document.getElementById('pv-frango');
+        const elCoxa = document.getElementById('pv-coxa');
+        const elRefri = document.getElementById('pv-refri');
+
+        if(!elFrango || !elCoxa || !elRefri) return;
+
+        elFrango.textContent = `${sold.frango} / ${prod.frango}`;
+        elCoxa.textContent  = `${sold.coxa} / ${prod.coxa}`;
+        elRefri.textContent = `${sold.refri} / ${prod.refri}`;
+
+        // aplicar alerta (vermelho) quando vendidos >= produzidos (e produzidos > 0)
+        elFrango.classList.toggle('alert', (prod.frango>0 && sold.frango >= prod.frango));
+        elCoxa.classList.toggle('alert',  (prod.coxa>0  && sold.coxa  >= prod.coxa));
+        elRefri.classList.toggle('alert', (prod.refri>0 && sold.refri >= prod.refri));
+      }
+
+      /* UI handlers */
+      (function productionWidgetSetup(){
+        const toggle = document.getElementById('production-toggle');
+        const panel = document.getElementById('production-panel');
+        const editArea = document.getElementById('produzidos-edit');
+
+        if(!toggle || !panel) return;
+
+        toggle.addEventListener('click', () => {
+          panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+          // sempre atualizar quando abrir
+          if (panel.style.display === 'block') {
+            updateProductionWidget();
+          }
+        });
+
+        document.getElementById('btn-close-productions').addEventListener('click', () => {
+          panel.style.display = 'none';
+        });
+
+        document.getElementById('btn-edit-produzidos').addEventListener('click', () => {
+          const d = getTodayKey();
+          const p = getProducedCounts(d);
+          document.getElementById('inp-prod-frango').value = p.frango || 0;
+          document.getElementById('inp-prod-coxa').value  = p.coxa  || 0;
+          document.getElementById('inp-prod-refri').value = p.refri || 0;
+          editArea.style.display = 'block';
+        });
+
+        document.getElementById('btn-cancel-produzidos').addEventListener('click', () => {
+          editArea.style.display = 'none';
+        });
+
+        document.getElementById('btn-save-produzidos').addEventListener('click', () => {
+          const fr = parseInt(document.getElementById('inp-prod-frango').value) || 0;
+          const cx = parseInt(document.getElementById('inp-prod-coxa').value)  || 0;
+          const rf = parseInt(document.getElementById('inp-prod-refri').value) || 0;
+          setProducedCounts(getTodayKey(), { frango: fr, coxa: cx, refri: rf });
+          editArea.style.display = 'none';
+          updateProductionWidget();
+        });
+
+        // document.getElementById('btn-reset-produzidos').addEventListener('click', () => {
+        //   sessionStorage.removeItem(storageKeyFor(getTodayKey()));
+        //   updateProductionWidget();
+        // });
+
+        // mostrar painel ao passar o mouse (opcional)
+        toggle.addEventListener('mouseenter', () => {
+          panel.style.display = 'block';
+          updateProductionWidget();
+        });
+        // e esconder ao sair (não obrigatório — o click ainda controla)
+        toggle.addEventListener('mouseleave', () => {
+          // opcional: não esconder para evitar fechar enquanto interage
+          // panel.style.display = 'none';
+        });
+      })();
+
       })();
 
       document.getElementById("input-endereco").addEventListener("blur", async () => {
