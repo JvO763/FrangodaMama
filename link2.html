@@ -12,6 +12,62 @@
   <link rel="stylesheet" href="css/link2.css">
   <link rel="stylesheet" href="css/materialdesignicons.min.css">
   <link rel="stylesheet" href="css/remixicon.css">
+
+<!-- === Loading overlay (cole no <head> ou logo após <body>) === -->
+<script>
+  // Reutilizável: usa app.preloader quando existir, senão cria overlay custom
+  function showLoading(text) {
+    try {
+      if (window.app && app.preloader && typeof app.preloader.show === 'function') {
+        app.preloader.show();
+        return;
+      }
+    } catch (e) { /* ignore */ }
+
+    if (!document.getElementById('sys-loader')) {
+      const ov = document.createElement('div');
+      ov.id = 'sys-loader';
+      ov.style.position = 'fixed';
+      ov.style.left = '0';
+      ov.style.top = '0';
+      ov.style.right = '0';
+      ov.style.bottom = '0';
+      ov.style.background = 'rgba(0,0,0,0.45)';
+      ov.style.zIndex = 99999;
+      ov.style.display = 'flex';
+      ov.style.alignItems = 'center';
+      ov.style.justifyContent = 'center';
+      ov.innerHTML = `<div style="background:#fff;padding:14px 18px;border-radius:10px;display:flex;align-items:center;gap:12px;min-width:180px">
+        <div style="width:22px;height:22px;border:3px solid #ddd;border-top-color:#333;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+        <div style="font-weight:600;color:#222">${text||'Carregando...'}</div>
+      </div>`;
+      document.body.appendChild(ov);
+      const s = document.createElement('style');
+      s.id = 'sys-loader-style';
+      s.innerHTML = `@keyframes spin{to{transform:rotate(360deg)}}`;
+      document.head.appendChild(s);
+    } else {
+      const ov = document.getElementById('sys-loader');
+      ov.style.display = 'flex';
+      const textDiv = ov.querySelector('div > div:last-child');
+      if (textDiv) textDiv.textContent = text || 'Carregando...';
+    }
+  }
+
+  function hideLoading() {
+    try {
+      if (window.app && app.preloader && typeof app.preloader.hide === 'function') {
+        app.preloader.hide();
+        return;
+      }
+    } catch (e) { /* ignore */ }
+
+    const ov = document.getElementById('sys-loader');
+    if (ov) ov.style.display = 'none';
+  }
+</script>
+
+
 </head>
 
 <body>
@@ -96,54 +152,66 @@
 
     // Função para carregar pedidos
   // Substitua sua função carregarPedidos atual por esta
-  async function carregarPedidos() {
-    const container = document.getElementById('lista-grupos');
-    container.innerHTML = '<div class="block"><p>Carregando pedidos...</p></div>';
+// === Função carregarPedidos com loading e proteção de botão ===
+async function carregarPedidos() {
+  const container = document.getElementById('lista-grupos');
+  const btn = document.getElementById('btn-carregar');
+
+  // UI imediata enquanto carrega (opcional)
+ // container.innerHTML = '<div class="block"><p>Carregando pedidos...</p></div>';
+
+  // desabilita botão para evitar múltiplos cliques
+  if (btn) { btn.classList.add('disabled'); btn.setAttribute('aria-disabled','true'); btn.disabled = true; }
+
+  showLoading('Carregando pedidos...');
+
+  try {
+    // Ajuste de fuso horário (UTC-3) para garantir que "hoje" não vire o dia seguinte após 21h
+    const now = new Date();
+    const saoPauloDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const today = saoPauloDate.toISOString().slice(0, 10);
+
+    // cache-buster + solicita não usar cache do browser
+    const url = `${SCRIPT_URL}?date=${today}&_=${Date.now()}`;
+
+    console.log('[carregarPedidos] fetch ->', url);
+    const res = await fetch(url, { cache: 'no-store' });
+
+    console.log('[carregarPedidos] status:', res.status, res.statusText);
+
+    const text = await res.text();
+    console.log('[carregarPedidos] resposta (raw):', text);
+
+    let data;
     try {
-      // Ajuste de fuso horário (UTC-3) para garantir que "hoje" não vire o dia seguinte após 21h
-      const now = new Date();
-      const saoPauloDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-      const today = saoPauloDate.toISOString().slice(0, 10);
-
-      // cache-buster + solicita não usar cache do browser
-      const url = `${SCRIPT_URL}?date=${today}&_=${Date.now()}`;
-
-      console.log('[carregarPedidos] fetch ->', url);
-      const res = await fetch(url, { cache: 'no-store' });
-
-      console.log('[carregarPedidos] status:', res.status, res.statusText);
-
-      // tenta ler como texto primeiro (para ver possíveis respostas não-JSON)
-      const text = await res.text();
-      console.log('[carregarPedidos] resposta (raw):', text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        // se não for JSON, tenta ver se o body já é do formato esperado (ex.: diretamente objeto)
-        console.warn('[carregarPedidos] corpo não é JSON válido:', e);
-        container.innerHTML = `<div class="block"><p>Resposta inesperada do servidor. Veja o console (raw).</p></div>`;
-        return;
-      }
-
-      const pedidos = data.pedidos || [];
-      console.log('[carregarPedidos] pedidos encontrados:', pedidos.length, pedidos);
-
-      if (!pedidos.length) {
-        container.innerHTML = '<div class="block"><p>Nenhum pedido encontrado para hoje.</p></div>';
-        return;
-      }
-
-      const grupos = agruparEntregasMelhorado(pedidos);
-      exibirGrupos(grupos);
-
-    } catch (err) {
-      console.error('[carregarPedidos] erro:', err);
-      container.innerHTML = `<div class="block"><p>Erro ao carregar pedidos. Veja console (CORS / rede / URL).</p></div>`;
-      app.dialog.alert('Erro ao carregar pedidos. Verifique console e Network (DevTools).');
+      data = JSON.parse(text);
+    } catch (e) {
+      console.warn('[carregarPedidos] corpo não é JSON válido:', e);
+      container.innerHTML = `<div class="block"><p>Resposta inesperada do servidor. Veja o console (raw).</p></div>`;
+      return;
     }
+
+    const pedidos = data.pedidos || [];
+    console.log('[carregarPedidos] pedidos encontrados:', pedidos.length, pedidos);
+
+    if (!pedidos.length) {
+      container.innerHTML = '<div class="block"><p>Nenhum pedido encontrado para hoje.</p></div>';
+      return;
+    }
+
+    const grupos = agruparEntregasMelhorado(pedidos);
+    exibirGrupos(grupos);
+
+  } catch (err) {
+    console.error('[carregarPedidos] erro:', err);
+    container.innerHTML = `<div class="block"><p>Erro ao carregar pedidos. Veja console (CORS / rede / URL).</p></div>`;
+    try { app.dialog.alert('Erro ao carregar pedidos. Verifique console e Network (DevTools).'); } catch(e){/* ignore */ }
+  } finally {
+    // sempre esconder loading e reabilitar botão
+    hideLoading();
+    if (btn) { btn.classList.remove('disabled'); btn.removeAttribute('aria-disabled'); btn.disabled = false; }
   }
+}
 
 
     function agruparEntregasMelhorado(entregas) {
@@ -413,6 +481,94 @@ function exibirGrupos(grupos) {
   // inicializa os valores (caso o usuário não mova nada)
   updateAllGroupSummariesAndLinks();
 }
+
+
+/* === Handler para "Abrir Rota Otimizada": abre nova aba + copia link + notifica === */
+(function setupRotaLinkHandlers(){
+  const container = document.getElementById('lista-grupos');
+  if(!container) return;
+
+  // util: mostra mensagem curta (usa Framework7 toast se disponível)
+  function showCopiedMessage(text) {
+    try {
+      if (window.app && app.toast) {
+        app.toast.create({ text: text || 'Link copiado para a área de transferência!', closeTimeout: 2000 }).open();
+        return;
+      }
+    } catch(e) { /* ignore */ }
+
+    // fallback simples: pequeno overlay no canto inferior direito
+    const id = 'clipboard-toast';
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.style.position = 'fixed';
+      el.style.right = '14px';
+      el.style.bottom = '20px';
+      el.style.background = 'rgba(0,0,0,0.85)';
+      el.style.color = '#fff';
+      el.style.padding = '10px 14px';
+      el.style.borderRadius = '8px';
+      el.style.zIndex = 12000;
+      el.style.fontSize = '14px';
+      el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.3)';
+      document.body.appendChild(el);
+    }
+    el.textContent = text || 'Link copiado para a área de transferência!';
+    el.style.opacity = '1';
+    // remove depois de 3s
+    clearTimeout(el._timeout);
+    el._timeout = setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(()=>{ try { el.remove(); } catch(e){} }, 300);
+    }, 3000);
+  }
+
+  // Delegação de clique para links de rota
+  container.addEventListener('click', async function (ev) {
+    const target = ev.target.closest && ev.target.closest('a.rota-link');
+    if (!target) return;
+
+    ev.preventDefault(); // vamos abrir + copiar manualmente
+
+    const href = target.getAttribute('href') || target.dataset.href;
+    if (!href) {
+      console.warn('rota-link sem href/data-href');
+      return;
+    }
+
+    // Abrir nova aba imediatamente (melhora compatibilidade com bloqueadores)
+    try {
+      window.open(href, '_blank');
+    } catch (e) {
+      console.warn('Erro ao abrir nova aba:', e);
+    }
+
+    // Tenta copiar para clipboard (navigator.clipboard)
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(href);
+        showCopiedMessage('Link copiado para a área de transferência!');
+      } else {
+        // fallback: textarea temporário
+        const ta = document.createElement('textarea');
+        ta.value = href;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showCopiedMessage('Link copiado para a área de transferência!'); }
+        catch (err) { showCopiedMessage('Não foi possível copiar automaticamente. Cole manualmente.'); }
+        setTimeout(()=>ta.remove(), 50);
+      }
+    } catch (err) {
+      console.warn('Erro ao copiar para clipboard:', err);
+      showCopiedMessage('Não foi possível copiar automaticamente. Link aberto em nova aba.');
+    }
+  });
+})();
+
 
 
 

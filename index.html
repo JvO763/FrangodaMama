@@ -21,9 +21,60 @@
     <link rel="stylesheet" href="css/remixicon.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
-    <style>
-      
-    </style>
+<!-- Colar logo antes de carregar os scripts principais (p.ex. antes de framework7-bundle.min.js) -->
+<script>
+  // Universal loading overlay — se o Framework7 existir, usa o preloader; senão, mostra overlay custom
+  function showLoading(text) {
+    try {
+      if (window.app && app.preloader && typeof app.preloader.show === 'function') {
+        app.preloader.show();
+        return;
+      }
+    } catch(e){ /* ignore */ }
+
+    if (!document.getElementById('sys-loader')) {
+      const ov = document.createElement('div');
+      ov.id = 'sys-loader';
+      ov.style.position = 'fixed';
+      ov.style.left = '0';
+      ov.style.top = '0';
+      ov.style.right = '0';
+      ov.style.bottom = '0';
+      ov.style.background = 'rgba(0,0,0,0.45)';
+      ov.style.zIndex = 99999;
+      ov.style.display = 'flex';
+      ov.style.alignItems = 'center';
+      ov.style.justifyContent = 'center';
+      ov.innerHTML = `<div style="background:#fff;padding:14px 18px;border-radius:10px;display:flex;align-items:center;gap:12px">
+        <div class="spin" style="width:22px;height:22px;border:3px solid #ddd;border-top-color:#333;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+        <div style="font-weight:600;color:#222">${text||'Carregando...'}</div>
+      </div>`;
+      document.body.appendChild(ov);
+      const s = document.createElement('style');
+      s.innerHTML = `@keyframes spin{to{transform:rotate(360deg)}}`;
+      document.head.appendChild(s);
+    } else {
+      const ov = document.getElementById('sys-loader');
+      ov.style.display = 'flex';
+      // atualiza texto se quiser (procura o div de texto no overlay)
+      const textDiv = ov.querySelector('div > div:last-child');
+      if (textDiv) textDiv.textContent = text || 'Carregando...';
+    }
+  }
+
+  function hideLoading() {
+    try {
+      if (window.app && app.preloader && typeof app.preloader.hide === 'function') {
+        app.preloader.hide();
+        return;
+      }
+    } catch(e) { /* ignore */ }
+
+    const ov = document.getElementById('sys-loader');
+    if (ov) ov.style.display = 'none';
+  }
+</script>
+
 
 </head>
 
@@ -372,29 +423,31 @@
         }
       });
 
-      function realizarLogin() {
-        var usuario = document.getElementById("login-username").value;
-        var senha = document.getElementById("login-password").value;
+function realizarLogin() {
+  var usuario = document.getElementById("login-username").value;
+  var senha = document.getElementById("login-password").value;
 
-        // Substitua pela URL do seu Apps Script
-        var url = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
+  // Substitua pela URL do seu Apps Script
+  var url = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
 
-        fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              sessionStorage.setItem("usuarioLogado", "true");
-              document.getElementById("login-screen").style.display = "none";
-              //document.getElementById("app-content").style.display = "block";
-            } else {
-              document.getElementById("login-error").innerText = "Usuário ou senha inválidos";
-            }
-          })
-          .catch(err => {
-            console.error("Erro ao realizar login:", err);
-            document.getElementById("login-error").innerText = "Erro na conexão";
-          });
+  showLoading('Entrando...');
+  fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
+    .then(res => res.json())
+    .then(data => {
+      hideLoading();
+      if (data.success) {
+        sessionStorage.setItem("usuarioLogado", "true");
+        document.getElementById("login-screen").style.display = "none";
+      } else {
+        document.getElementById("login-error").innerText = "Usuário ou senha inválidos";
       }
+    })
+    .catch(err => {
+      hideLoading();
+      console.error("Erro ao realizar login:", err);
+      document.getElementById("login-error").innerText = "Erro na conexão";
+    });
+}
 
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
@@ -518,55 +571,60 @@
             preco_total: precoTotal
           };
 
-          try {
-            // se estivermos editando, chama updateOrder
-            if (window.__editingRow) {
-              body.action = 'updateOrder';
-              body.row = window.__editingRow;
+                  try {
+          showLoading('Enviando pedido...');
 
-              const form = new URLSearchParams();
-              Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
+          // se estivermos editando, chama updateOrder
+          if (window.__editingRow) {
+            body.action = 'updateOrder';
+            body.row = window.__editingRow;
 
-              const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: form
-              });
+            const form = new URLSearchParams();
+            Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
 
-              const json = await (async () => { try { return await res.json(); } catch (e) { return null; } })();
+            const res = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              body: form
+            });
 
-              if (json && json.sucesso) {
-                app.dialog.alert('Pedido atualizado com sucesso!');
-              } else {
-                console.warn('Resposta updateOrder:', json, res);
-                app.dialog.alert('Pedido atualizado (resposta não confirmada). Verifique o console.');
-              }
+            const json = await (async () => { try { return await res.json(); } catch (e) { return null; } })();
 
-              // limpa estado de edição
-              window.__editingRow = null;
-              const titleEl = document.querySelector('#popup-add-pedido .navbar .title');
-              if (titleEl) titleEl.textContent = 'Novo Pedido';
+            hideLoading();
+
+            if (json && json.sucesso) {
+              app.dialog.alert('Pedido atualizado com sucesso!');
             } else {
-              // criar novo pedido (comportamento anterior)
-              body.action = 'addOrder';
-              const form = new URLSearchParams();
-              Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
-
-              const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: form
-              });
-
-              // tenta ler resposta
-              let json = null;
-              try { json = await res.json(); } catch (e) { json = null; }
-              console.log('Resposta do script (add):', json || res);
-              app.dialog.alert('Pedido adicionado com sucesso!');
+              console.warn('Resposta updateOrder:', json, res);
+              app.dialog.alert('Pedido atualizado (resposta não confirmada). Verifique o console.');
             }
 
-            // fecha popup e limpa campos
-            app.popup.close('#popup-add-pedido');
+            // limpa estado de edição
+            window.__editingRow = null;
+            const titleEl = document.querySelector('#popup-add-pedido .navbar .title');
+            if (titleEl) titleEl.textContent = 'Novo Pedido';
+          } else {
+            // criar novo pedido (comportamento anterior)
+            body.action = 'addOrder';
+            const form = new URLSearchParams();
+            Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
 
-            $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
+            const res = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              body: form
+            });
+
+            // tenta ler resposta
+            let json = null;
+            try { json = await res.json(); } catch (e) { json = null; }
+            console.log('Resposta do script (add):', json || res);
+            hideLoading();
+            app.dialog.alert('Pedido adicionado com sucesso!');
+          }
+
+          // fecha popup e limpa campos...
+          app.popup.close('#popup-add-pedido');
+          // (resto do código de limpeza permanece idêntico)
+          $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
             $$('#chk-coxa').prop('checked', false); $$('#qtd-coxa').val(0).prop('disabled', true);
             $$('#chk-arroz').prop('checked', false); $$('#qtd-arroz').val(0).prop('disabled', true);
             $$('#input-refrigerantes').val('');
@@ -578,13 +636,13 @@
             $$('#input-preco-total').val('');
             $$('#input-acrescimo').val('0.00');
             $$('#input-obs').val('');
+          carregarPedidosDoDia();
+        } catch (err) {
+          hideLoading();
+          console.error('Erro ao enviar/atualizar pedido:', err);
+          app.dialog.alert('Erro ao enviar pedido. Verifique a conexão ou o URL do script.');
+        }
 
-            // atualiza a lista
-            carregarPedidosDoDia();
-          } catch (err) {
-            console.error('Erro ao enviar/atualizar pedido:', err);
-            app.dialog.alert('Erro ao enviar pedido. Verifique a conexão ou o URL do script.');
-          }
         });
 
         // Ajustar mínimo do datetime-local: busca pedidos do dia e calcula min = último+10min ou agora+10min
@@ -620,6 +678,7 @@
         }
 
         async function carregarPedidosDoDia(showOnlyNotDelivered = false) {
+          showLoading('Carregando pedidos...');
           try {
             $$('#produtos').html('');
                 // ✅ Corrige o fuso horário (UTC−3 — horário local de São Paulo)
@@ -802,6 +861,8 @@
           } catch (err) {
             console.error('❌ Erro ao carregar pedidos do dia:', err);
             $$('#produtos').html('<div class="block"><p>Erro ao carregar pedidos.</p></div>');
+          } finally {
+            hideLoading();
           }
         }
 
@@ -817,23 +878,28 @@
         let filtrando = false;
         let filtrandoEmProgresso = false;
 
-        $$('#btnBuscar').on('click', async () => {
+                $$('#btnBuscar').on('click', async () => {
           if (filtrandoEmProgresso) return; // bloqueia cliques simultâneos
           filtrandoEmProgresso = true;
 
           filtrando = !filtrando;
 
-          if (filtrando) {
-            $$('#searchIcon').css('color', 'var(--dourado)');
-            await carregarPedidosDoDia(true); // aplica filtro
-          } else {
-            $$('#searchIcon').css('color', 'var(--branco)');
-            await carregarPedidosDoDia(false); // remove filtro
+          try {
+            showLoading('Aplicando filtro...');
+            if (filtrando) {
+              $$('#searchIcon').css('color', 'var(--dourado)');
+              await carregarPedidosDoDia(true); // aplica filtro
+            } else {
+              $$('#searchIcon').css('color', 'var(--branco)');
+              await carregarPedidosDoDia(false); // remove filtro
+            }
+          } catch (e) {
+            console.error('Erro ao aplicar filtro:', e);
+          } finally {
+            hideLoading();
+            filtrandoEmProgresso = false;
           }
-
-          filtrandoEmProgresso = false;
         });
-
 
 
 

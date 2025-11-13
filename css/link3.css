@@ -340,7 +340,7 @@ input[type="email"]:focus,
 textarea:focus,
 select:focus {
   border-color: var(--dourado_claro);
-  background-color: #3a3a3a;
+  background-color: var(--dourado_claro);
   outline: none;
 }
 
@@ -714,3 +714,30 @@ select:focus {
 /* cor específica para gastos totais */
 .summary-gastos .value { color: var(--dourado); color: #ff6b6b; } /* vermelho */
 .summary-ganhos .value { color: var(--dourado); color: #28a745; } /* verde */
+
+#popup-add-gasto .item-content.item-input .item-input-wrap textarea#inp-obs,
+#popup-add-gasto .item-content.item-input textarea#inp-obs,
+.item-content.item-input .item-input-wrap textarea#inp-obs,
+textarea#inp-obs {
+  height: 130px !important;
+  min-height: 200px !important;
+  max-height: 500px !important;
+  line-height: 1.4 !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  resize: vertical !important; /* permite ao usuário redimensionar verticalmente */
+}
+
+/* Faz a linha do formulário alinhar pelo topo (evita textarea "cortada") */
+#popup-add-gasto .item-content.item-input {
+  align-items: flex-start !important;
+}
+
+/* Caso Framework7 coloque overflow, asseguramos visibilidade */
+#popup-add-gasto .item-input-wrap {
+  overflow: visible !important;
+}
+

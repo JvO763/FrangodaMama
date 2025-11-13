@@ -200,56 +200,103 @@ function hideLoading() {
     /* ---------- NEW / REPLACEMENT JS for showing pedidos cards ---------- */
 
     // Fetch gastos (mantém sua função atual)
-    async function fetchGastos(start, end){
+async function fetchGastos(start, end){
+  try {
+    showLoading('Buscando gastos...');
     const params = new URLSearchParams({ action: 'getGastos', start, end });
     const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
     const json = await res.json();
     return json.gastos || [];
-    }
+  } catch (err) {
+    console.error('fetchGastos erro:', err);
+    return [];
+  } finally {
+    hideLoading();
+  }
+}
 
-    async function addGasto(obj){
-        const form = new URLSearchParams();
-        form.append('action','addGasto');
-        Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
-        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
-        return await res.json();
-      }
+async function addGasto(obj){
+  try {
+    showLoading('Adicionando gasto...');
+    const form = new URLSearchParams();
+    form.append('action','addGasto');
+    Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
+    const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+    return await res.json();
+  } catch (err) {
+    console.error('addGasto erro:', err);
+    return { sucesso: false };
+  } finally {
+    hideLoading();
+  }
+}
 
-      async function updateGasto(obj){
-        const form = new URLSearchParams();
-        form.append('action','updateGasto');
-        Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
-        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
-        return await res.json();
-      }
+async function updateGasto(obj){
+  try {
+    showLoading('Atualizando gasto...');
+    const form = new URLSearchParams();
+    form.append('action','updateGasto');
+    Object.entries(obj).forEach(([k,v]) => form.append(k, v===undefined||v===null?'':String(v)));
+    const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+    return await res.json();
+  } catch (err) {
+    console.error('updateGasto erro:', err);
+    return { sucesso: false };
+  } finally {
+    hideLoading();
+  }
+}
 
-      async function deleteGasto(id){
-        const form = new URLSearchParams();
-        form.append('action','deleteGasto');
-        form.append('id', id);
-        const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
-        return await res.json();
-      }
+async function deleteGasto(id){
+  try {
+    showLoading('Apagando gasto...');
+    const form = new URLSearchParams();
+    form.append('action','deleteGasto');
+    form.append('id', id);
+    const res = await fetch(SCRIPT_URL, { method:'POST', body: form });
+    return await res.json();
+  } catch (err) {
+    console.error('deleteGasto erro:', err);
+    return { sucesso: false };
+  } finally {
+    hideLoading();
+  }
+}
 
     // Antes: fetchGanhosSum apenas retornava soma.
     // Agora: mantemos fetchGanhosSum, e adicionamos fetchPedidosRange para obter lista de pedidos.
-    async function fetchGanhosSum(start, end){
+async function fetchGanhosSum(start, end){
+  try {
+    showLoading('Calculando ganhos...');
     const params = new URLSearchParams({ action: 'getPedidosSum', start, end });
     const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
     const json = await res.json();
     return Number(json.sum || 0);
-    }
+  } catch (err) {
+    console.error('fetchGanhosSum erro:', err);
+    return 0;
+  } finally {
+    hideLoading();
+  }
+}
+
 
     // NEW: busca lista de pedidos no intervalo (para exibir cards individuais)
-    async function fetchPedidosRange(start, end){
-    // Recomendado: o Apps Script entenda action=getPedidosRange&start=YYYY-MM-DD&end=YYYY-MM-DD
-    // Se seu backend já tiver algo semelhante, apenas ajuste a action/url aqui.
+async function fetchPedidosRange(start, end){
+  try {
+    showLoading('Buscando pedidos...');
     const params = new URLSearchParams({ action: 'getPedidosRange', start, end });
     const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
     const json = await res.json();
-    // espera um array json.pedidos
     return json.pedidos || [];
-    }
+  } catch (err) {
+    console.error('fetchPedidosRange erro:', err);
+    return [];
+  } finally {
+    hideLoading();
+  }
+}
+
 
     // RENDER: agora mostra também cards dos pedidos (ganhos) quando for solicitado
     function renderMovimentos(itemsGastos, ganhosSum, pedidosList, viewType){
@@ -352,8 +399,8 @@ function hideLoading() {
           <div style="text-align:right">
             <div class="${tipoClass} mov-valor">${valorStr}</div>
             <div style="margin-top:8px;">
-              <button class="small-btn btn-edit-gasto" data-id="${g.ID}">Editar</button>
-              <button class="small-btn btn-del-gasto" data-id="${g.ID}">Apagar</button>
+              <button class="small-btn btn-edit-gasto no-ripple" data-id="${g.ID}">Editar</button>
+              <button class="small-btn btn-del-gasto no-ripple" data-id="${g.ID}">Apagar</button>
             </div>
           </div>
         </div>
@@ -366,9 +413,12 @@ function hideLoading() {
 
     // APPLY FILTERS: busca gastos, soma de ganhos e (se preciso) lista de pedidos
     async function applyFilters(){
-    const start = document.getElementById('f-start').value;
-    const end = document.getElementById('f-end').value;
-    const viewType = document.querySelector('input[name="viewType"]:checked').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const viewType = document.querySelector('input[name="viewType"]:checked').value;
+
+  try {
+    showLoading('Carregando resultados...');
 
     // sempre buscar gastos quando precisamos mostrá-los (gastos ou ambos)
     const gastos = (viewType === 'ganhos') ? [] : await fetchGastos(start, end);
@@ -378,23 +428,22 @@ function hideLoading() {
     // SE pede mostrar pedidos (ganhos ou ambos), buscar lista de pedidos
     let pedidosList = [];
     if(viewType === 'ganhos' || viewType === 'both') {
-        // tenta buscar lista. Requererá handler no Apps Script (getPedidosRange)
-        try {
+      try {
         pedidosList = await fetchPedidosRange(start, end);
-        } catch (e) {
+      } catch (e) {
         console.warn('Erro ao obter lista de pedidos:', e);
         pedidosList = [];
-        }
+      }
     }
 
     // compute total: gastos negativos
     let total = 0;
     if(viewType === 'both'){
-        total = ganhosSum - sumGastos;
+      total = ganhosSum - sumGastos;
     } else if(viewType === 'gastos'){
-        total = -sumGastos;
+      total = -sumGastos;
     } else { // ganhos
-        total = ganhosSum;
+      total = ganhosSum;
     }
 
     // atualiza texto do total (apresenta sinal negativo quando necessário)
@@ -406,8 +455,13 @@ function hideLoading() {
 
     // fecha popup filtro se aberto
     hideFilterPopup();
-    }
-
+  } catch (err) {
+    console.error('Erro em applyFilters:', err);
+    if(window.app && app.dialog) app.dialog.alert('Erro ao carregar dados. Veja console.');
+  } finally {
+    hideLoading();
+  }
+}
 
       // Init UI bindings
       document.getElementById('btn-apply').addEventListener('click', applyFilters);
