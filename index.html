@@ -109,6 +109,16 @@
               <div class="block">
                 <div class="list no-hairlines-md">
                   <ul>
+                    <!-- Nome -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">Nome do Cliente</div>
+                        <div class="item-input-wrap">
+                          <input type="text" id="input-nome-cliente" placeholder="Nome" />
+                        </div>
+                      </div>
+                    </li>
+
                     <!-- Frango -->
                     <li class="item-content item-input">
                       <div class="item-inner">
@@ -175,15 +185,7 @@
                       </div>
                     </li>
 
-                    <!-- Nome -->
-                    <li class="item-content item-input">
-                      <div class="item-inner">
-                        <div class="item-title item-label">Nome do Cliente</div>
-                        <div class="item-input-wrap">
-                          <input type="text" id="input-nome-cliente" placeholder="Nome" />
-                        </div>
-                      </div>
-                    </li>
+                    
 
                     <!-- Endereço -->
                     <li class="item-content item-input">
@@ -210,7 +212,7 @@
                       <div class="item-inner">
                         <div class="item-title item-label">CEP</div>
                         <div class="item-input-wrap">
-                          <input type="text" id="input-cep" placeholder="CEP será preenchido automaticamente" readonly />
+                          <input type="text" id="input-cep" placeholder="CEP (pode digitar ou será preenchido automaticamente)" />
                         </div>
                       </div>
                     </li>
@@ -428,7 +430,7 @@ function realizarLogin() {
   var senha = document.getElementById("login-password").value;
 
   // Substitua pela URL do seu Apps Script
-  var url = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
+  var url = "https://script.google.com/macros/s/AKfycbz4R4rra2PoNCYsS_O4x6ucvgjGQmRdBKhOLquUK3idUVq9fPU1IDhwPf3VSmQWbsOh2g/exec";
 
   showLoading('Entrando...');
   fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
@@ -451,7 +453,7 @@ function realizarLogin() {
 
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_c2BF6GlxNMnpK9hlZlHEJ5WNAjiIJa1Ntugu3J6FpIWrriFhjoPB8STYDSx-0xRbNw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4R4rra2PoNCYsS_O4x6ucvgjGQmRdBKhOLquUK3idUVq9fPU1IDhwPf3VSmQWbsOh2g/exec";
         // --------------------------------------------------------------------
 
         const PRECO_FRANGO_ASSADO = 49.90;
@@ -545,6 +547,51 @@ function realizarLogin() {
           const acrescimo = parseFloat($$('#input-acrescimo').val()) || 0;
           const observacoes = $$('#input-obs').val().trim();
 
+          // --- Verificação de estoque: impede vender mais do que produzido disponível ---
+// obtém produzidos para hoje
+const produced = getProducedCounts(getTodayKey()); // { frango, coxa, refri }
+const sold = computeSoldCounts(); // soma dos pedidos já presentes em window.__pedidosMap
+
+// se estamos editando um pedido, subtrai a quantidade atual do pedido que está sendo editado
+let origFrango = 0, origCoxa = 0;
+if (window.__editingRow && window.__pedidosMap && window.__pedidosMap[window.__editingRow]) {
+  const orig = window.__pedidosMap[window.__editingRow];
+  origFrango = Number(orig.qntd_frango || orig.qtd_frango || 0);
+  origCoxa  = Number(orig.qntd_sobrecoxa || orig.qtd_sobrecoxa || 0);
+}
+
+// dispo = produzido - (vendido - originalDoPedidoEditado)
+const availableFrango = (Number(produced.frango || 0) > 0)
+  ? Math.max(Number(produced.frango || 0) - (sold.frango - origFrango), 0)
+  : Infinity; // se não produziu (0), consideramos ilimitado
+
+const availableCoxa = (Number(produced.coxa || 0) > 0)
+  ? Math.max(Number(produced.coxa || 0) - (sold.coxa - origCoxa), 0)
+  : Infinity;
+
+// Checa frango
+if (Number(qtdFrango || 0) > availableFrango) {
+  if (availableFrango === Infinity) {
+    // se infinito, passa (não deveria ocorrer); caso queira bloquear sempre, remova Infinity lógica
+  } else {
+    app.dialog.alert(`Não há frangos suficientes disponíveis. Disponível: ${availableFrango}.`);
+    hideLoading();
+    return;
+  }
+}
+
+// Checa coxa
+if (Number(qtdCoxa || 0) > availableCoxa) {
+  if (availableCoxa === Infinity) {
+    // idem
+  } else {
+    app.dialog.alert(`Não há coxas suficientes disponíveis. Disponível: ${availableCoxa}.`);
+    hideLoading();
+    return;
+  }
+}
+
+
           if ((qtdFrango + qtdCoxa + qtdRefri + qtdArroz) === 0 || !nome || !endereco || !datetimeLocal) {
             app.dialog.alert('Preencha todos os campos obrigatórios e escolha ao menos um item.');
             return;
@@ -574,6 +621,8 @@ function realizarLogin() {
                   try {
           showLoading('Enviando pedido...');
 
+
+
           // se estivermos editando, chama updateOrder
           if (window.__editingRow) {
             body.action = 'updateOrder';
@@ -590,6 +639,8 @@ function realizarLogin() {
             const json = await (async () => { try { return await res.json(); } catch (e) { return null; } })();
 
             hideLoading();
+
+
 
             if (json && json.sucesso) {
               app.dialog.alert('Pedido atualizado com sucesso!');
@@ -637,6 +688,23 @@ function realizarLogin() {
             $$('#input-acrescimo').val('0.00');
             $$('#input-obs').val('');
           carregarPedidosDoDia();
+          // --- notifica rotas sobre novo pedido (colocar logo após carregarPedidosDoDia(); ) ---
+try {
+  // dispara um evento customizado para outras páginas/carregamentos ouvirem
+  window.dispatchEvent(new CustomEvent('pedido:adicionado', { detail: { when: Date.now() } }));
+  // se a função carregarPedidos (da página link2) estiver disponível no mesmo contexto, chama direto
+  if (typeof window.carregarPedidos === 'function') {
+    console.log('[index] notifica rotas: chamando window.carregarPedidos() diretamente');
+    try { window.carregarPedidos(); } catch(e) { console.warn('[index] erro ao chamar carregarPedidos():', e); }
+  } else {
+    // fallback: marca um flag em sessionStorage para que a página de rotas saiba que precisa recarregar quando for ativada
+    sessionStorage.setItem('rotas:refresh_at', String(Date.now()));
+    console.log('[index] notifica rotas: flag rotas:refresh_at setada');
+  }
+} catch (err) {
+  console.warn('[index] erro ao notificar rotas sobre novo pedido:', err);
+}
+
         } catch (err) {
           hideLoading();
           console.error('Erro ao enviar/atualizar pedido:', err);
@@ -736,34 +804,37 @@ function realizarLogin() {
 
               const horaAjustada = p.horario_entrega || '';
 
-              const card = `
-                <div class="card pedido-card" data-row="${sheetRow}" data-id="${i}">
-                  <div class="card-header flex justify-between items-center">
-                    <div class="pedido-itens">
-                      <b>${items.join(' • ')}</b>
-                    </div>
-                  
-                    <a href="#" class="button button-small btn-edit" data-row="${sheetRow}">✏️ Editar</a>
-                    <div class="checkbox-container">
-                      <label class="checkbox-label">
-                        <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
-                        <span>Entregue</span>
-                      </label>
-                      <label class="checkbox-label">
-                        <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
-                        <span>Pago</span>
-                      </label>
-                       </div>
-                  </div>
-                  <div class="card-content card-content-padding">
-                    <p><b>Cliente:</b> ${p.nome_cliente || p.nome || '-'}</p>
-                    <p><b>Endereço:</b> ${p.endereco || '-'}</p>
-                    <p><b>Horário:</b> ${horaAjustada}</p>
-                    <p><b>Total:</b> R$ ${preco}</p>
-                    ${p.tipo_refrigerante ? `<p class="obs"><b>Obs:</b> ${p.tipo_refrigerante}</p>` : ''}
-                  </div>
-                </div>
-              `;
+              const clienteNome = p.nome_cliente || p.nome || '-';
+const itemsText = items.join(' • ') || 'Sem itens';
+const card = `
+  <div class="card pedido-card" data-row="${sheetRow}" data-id="${i}">
+    <div class="card-header flex justify-between items-center">
+      <div class="pedido-itens" style="flex:1;">
+        <div style="font-weight:800; font-size:1.05rem; margin-bottom:6px;">${clienteNome}</div>
+        <div style="font-size:0.95rem; color:#666;">${itemsText}</div>
+      </div>
+
+      <a href="#" class="button button-small btn-edit" data-row="${sheetRow}">✏️ Editar</a>
+<a href="#" class="button button-small btn-delete" data-row="${sheetRow}" style="margin-left:8px;">🗑️ Apagar</a>
+<div class="checkbox-container">
+        <label class="checkbox-label">
+          <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
+          <span>Entregue</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
+          <span>Pago</span>
+        </label>
+      </div>
+    </div>
+    <div class="card-content card-content-padding">
+<p><b>Endereço:</b> ${p.endereco || '-'}${p.numero ? `, ${p.numero}` : ''}</p>
+      <p><b>Horário:</b> ${horaAjustada}</p>
+      <p><b>Total:</b> R$ ${preco}</p>
+      ${p.tipo_refrigerante ? `<p class="obs"><b>Obs:</b> ${p.tipo_refrigerante}</p>` : ''}
+    </div>
+  </div>
+`;
 
               $$('#produtos').append(card);
             });
@@ -806,6 +877,89 @@ function realizarLogin() {
                 app.dialog.alert('Dados do pedido não encontrados para edição.');
                 return;
               }
+            
+            // Handler delegado: apagar pedido
+$$('#produtos').off('click', '.btn-delete'); // segurança: limpa binds duplicados
+$$('#produtos').on('click', '.btn-delete', async function (evt) {
+  evt.preventDefault();
+  console.log('🟡 Clique detectado no botão de apagar.');
+
+  const $btn = $$(this);
+  const row = $btn.data('row');
+  console.log('🔍 Row extraída do botão:', row);
+
+  if (!row) { 
+    console.error('❌ Nenhuma linha associada ao botão.');
+    app.dialog.alert('Linha do pedido não informada.'); 
+    return; 
+  }
+
+  const url = `${SCRIPT_URL}?action=deleteOrder&row=${encodeURIComponent(row)}`;
+  console.log('🔗 URL gerada para requisição:', url);
+
+  if (window.app && app.dialog) {
+    app.dialog.confirm('Apagar este pedido? Essa operação é irreversível.', async () => {
+      try {
+        console.log('🕓 Enviando requisição para apagar pedido...');
+        showLoading('Apagando pedido...');
+        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+
+        let json = null;
+        try { 
+          json = await res.json(); 
+        } catch (e) { 
+          console.error('⚠️ Erro ao parsear JSON:', e);
+        }
+
+        hideLoading();
+        console.log('📩 Resposta recebida:', json);
+
+        if (json && (json.sucesso || json.success)) {
+          console.log('🟢 Pedido apagado com sucesso no servidor.');
+          $btn.closest('.card').remove();
+          console.log('🧹 Card removido do DOM.');
+          if (typeof updateProductionWidget === 'function') {
+            console.log('🔄 Atualizando widget de produção...');
+            updateProductionWidget();
+          }
+          app.dialog.alert('Pedido apagado com sucesso.');
+        } else {
+          console.warn('⚠️ Erro ao apagar no servidor:', json);
+          app.dialog.alert('Não foi possível apagar o pedido. Veja o console.');
+        }
+      } catch (err) {
+        hideLoading();
+        console.error('❌ Erro na requisição:', err);
+        app.dialog.alert('Erro ao apagar pedido. Verifique a conexão.');
+      }
+    });
+  } else {
+    console.warn('⚠️ App.dialog não disponível. Usando confirm()...');
+    if (!confirm('Apagar este pedido? Essa operação é irreversível.')) return;
+    try {
+      console.log('🕓 Enviando requisição para apagar pedido...');
+      showLoading('Apagando pedido...');
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      const json = await res.json();
+      hideLoading();
+      console.log('📩 Resposta recebida:', json);
+
+      if (json && (json.sucesso || json.success)) {
+        console.log('🟢 Pedido apagado com sucesso no servidor.');
+        $btn.closest('.card').remove();
+        if (typeof updateProductionWidget === 'function') updateProductionWidget();
+        alert('Pedido apagado com sucesso.');
+      } else {
+        console.warn('⚠️ Resposta inesperada:', json);
+        alert('Não foi possível apagar o pedido. Veja o console.');
+      }
+    } catch (err) {
+      hideLoading();
+      console.error('❌ Erro ao apagar pedido:', err);
+      alert('Erro ao apagar pedido. Verifique a conexão.');
+    }
+  }
+});
 
               // marca que estamos editando essa linha
               window.__editingRow = row;

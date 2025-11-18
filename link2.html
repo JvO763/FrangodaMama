@@ -148,36 +148,36 @@
       }
     });
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwTVNfu5ks4a1dCVpFkLXtXpmSwgModIS2F55CS26aImwckSaeH_vQWx3RKWPRtxsFWw/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXmiHz07x5Q7zN1kFUPmVE4wUq7FyET_BSZlqGme74-NRvrvAyjQWonpuiK8DVjCmCNA/exec';
 
     // Função para carregar pedidos
   // Substitua sua função carregarPedidos atual por esta
 // === Função carregarPedidos com loading e proteção de botão ===
+// ----------------- Substitua por este carregarPedidos -----------------
 async function carregarPedidos() {
   const container = document.getElementById('lista-grupos');
   const btn = document.getElementById('btn-carregar');
+  console.log('[carregarPedidos] iniciado');
 
-  // UI imediata enquanto carrega (opcional)
- // container.innerHTML = '<div class="block"><p>Carregando pedidos...</p></div>';
+  if (btn) {
+    btn.classList.add('disabled'); btn.setAttribute('aria-disabled','true'); btn.disabled = true;
+    btn.dataset._lastClicked = Date.now();
+  }
 
-  // desabilita botão para evitar múltiplos cliques
-  if (btn) { btn.classList.add('disabled'); btn.setAttribute('aria-disabled','true'); btn.disabled = true; }
+  // mensagem inicial no UI
+  // if (container) container.innerHTML = '<div class="block"><p>Carregando pedidos... (aguarde)</p></div>';
 
   showLoading('Carregando pedidos...');
 
   try {
-    // Ajuste de fuso horário (UTC-3) para garantir que "hoje" não vire o dia seguinte após 21h
     const now = new Date();
     const saoPauloDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
     const today = saoPauloDate.toISOString().slice(0, 10);
-
-    // cache-buster + solicita não usar cache do browser
     const url = `${SCRIPT_URL}?date=${today}&_=${Date.now()}`;
 
     console.log('[carregarPedidos] fetch ->', url);
     const res = await fetch(url, { cache: 'no-store' });
-
-    console.log('[carregarPedidos] status:', res.status, res.statusText);
+    console.log('[carregarPedidos] fetch concluído, status:', res.status, res.statusText);
 
     const text = await res.text();
     console.log('[carregarPedidos] resposta (raw):', text);
@@ -186,32 +186,218 @@ async function carregarPedidos() {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.warn('[carregarPedidos] corpo não é JSON válido:', e);
-      container.innerHTML = `<div class="block"><p>Resposta inesperada do servidor. Veja o console (raw).</p></div>`;
+      console.error('[carregarPedidos] erro ao parsear JSON:', e);
+      container.innerHTML = `<div class="block"><p>Resposta inesperada do servidor. Veja console. (parse error)</p></div>`;
       return;
     }
 
     const pedidos = data.pedidos || [];
-    console.log('[carregarPedidos] pedidos encontrados:', pedidos.length, pedidos);
+
+// --- after: const pedidos = data.pedidos || []; ---
+console.log('[carregarPedidos] pedidos carregados count:', pedidos.length);
+
+// Tente recuperar grupos salvos (GET para seu handler que retorna último salvo)
+// Ajuste a URL/param se seu endpoint for diferente (ex: action=getLastGroups)
+try {
+  console.log('[carregarPedidos] solicitando últimos grupos salvos...');
+  const gRes = await fetch(`${SCRIPT_URL}?action=getLastGroups&_=${Date.now()}`, { cache: 'no-store' });
+  console.log('[carregarPedidos] getLastGroups status:', gRes.status);
+  const gText = await gRes.text();
+  console.log('[carregarPedidos] getLastGroups resposta raw:', gText);
+
+  let gJson = null;
+  try { gJson = JSON.parse(gText); } catch(e) { gJson = null; }
+  console.log('[carregarPedidos] getLastGroups json:', gJson);
+
+  // Extrai string/array com tolerância: em seus logs veio {sucesso:true, grupos: '[[...],[]]' }
+  let savedGroupsRaw = (gJson && (gJson.grupos || gJson.groups)) || null;
+  if (typeof savedGroupsRaw === 'string') {
+    try {
+      savedGroupsRaw = JSON.parse(savedGroupsRaw);
+    } catch (e) {
+      console.warn('[carregarPedidos] parse savedGroups string falhou:', e);
+    }
+  }
+
+if (Array.isArray(savedGroupsRaw)) {
+  // mapeia rows salvos para objetos pedidos (ignora rows não encontrados ou entregues)
+  const mappedGroups = savedGroupsRaw.map(groupArr => {
+    if (!Array.isArray(groupArr)) return [];
+    return groupArr.map(rowVal => {
+      const rowStr = String(rowVal);
+      const found = pedidos.find(p => String(p._sheetRow) === rowStr);
+      if (!found) {
+        console.warn('[carregarPedidos] pedido não encontrado para row', rowStr);
+        return null;
+      }
+      // IGNORA pedidos já entregues
+      if (found.entregue === true || String(found.entregue).toLowerCase() === 'true' || String(found.entregue) === '1') {
+        console.log('[carregarPedidos] pedido já entregue — ignorando no grupo salvo:', rowStr);
+        return null;
+      }
+      return found;
+    }).filter(Boolean);
+  }).filter(g => g.length > 0); // remove grupos vazios
+
+  const totalMapped = mappedGroups.reduce((s, g) => s + g.length, 0);
+  console.log('[carregarPedidos] mappedGroups (sem entregues):', mappedGroups, ' totalMapped:', totalMapped);
+
+  // marca os rows já incluídos nos grupos salvos (após filtro)
+  const included = new Set();
+  mappedGroups.forEach(g => g.forEach(p => { if (p && p._sheetRow) included.add(String(p._sheetRow)); }));
+
+  // pedidos que ficaram de fora (novos pedidos ou entregues)
+  const remaining = pedidos.filter(p => !included.has(String(p._sheetRow)));
+  console.log('[carregarPedidos] remaining pedidos (não estavam nos grupos salvos ou eram entregues):', remaining.map(r=>r._sheetRow));
+
+  // agrupa apenas os remanescentes automaticamente
+  let autoGroups = [];
+  if (remaining.length > 0) {
+    try {
+      autoGroups = agruparEntregasMelhorado(remaining);
+      console.log('[carregarPedidos] autoGroups gerados para remanescentes:', autoGroups);
+    } catch (e) {
+      console.warn('[carregarPedidos] erro ao agrupar remanescentes, fallback criar grupos unitários:', e);
+      autoGroups = remaining.map(p => [p]);
+    }
+  }
+
+  const finalGroups = mappedGroups.concat(autoGroups);
+  console.log('[carregarPedidos] finalGroups (salvos sem entregues + automáticos):', finalGroups);
+
+  exibirGrupos(finalGroups);
+  return;
+}
+
+} catch (err) {
+  console.warn('[carregarPedidos] erro ao buscar/usar grupos salvos:', err);
+  // continua para agrupar automaticamente
+}
+
+// Se não usou grupos salvos, agrupa automaticamente
+console.log('[carregarPedidos] nenhum grupo salvo encontrado, agrupando automaticamente');
+const gruposAutomaticos = agruparEntregasMelhorado(pedidos);
+console.log('[carregarPedidos] grupos automáticos:', gruposAutomaticos);
+exibirGrupos(gruposAutomaticos);
+
+
+    console.log('[carregarPedidos] pedidos array length:', pedidos.length, pedidos);
 
     if (!pedidos.length) {
       container.innerHTML = '<div class="block"><p>Nenhum pedido encontrado para hoje.</p></div>';
       return;
     }
 
+    // monta mapa row -> pedido (útil para reconstruir grupos salvos)
+    const pedidosMap = {};
+    pedidos.forEach(p => { if (p._sheetRow) pedidosMap[String(p._sheetRow)] = p; });
+    window.__debug_pedidosMap = pedidosMap;
+    console.log('[carregarPedidos] pedidosMap criado, chaves:', Object.keys(pedidosMap).slice(0,20));
+
+    // tenta obter grupos salvos do servidor (se houver)
+    let savedGroups = null;
+    try {
+      console.log('[carregarPedidos] buscando grupos salvos...');
+      const gRes = await fetch(`${SCRIPT_URL}?action=getLastGroups&_=${Date.now()}`, { cache: 'no-store' });
+      console.log('[carregarPedidos] getLastGroups status:', gRes.status, gRes.statusText);
+      if (gRes && gRes.ok) {
+        const gJson = await gRes.json();
+        console.log('[carregarPedidos] getLastGroups resposta json:', gJson);
+        if (gJson && gJson.grupos) savedGroups = gJson.grupos;
+      } else {
+        console.warn('[carregarPedidos] getLastGroups não retornou ok', gRes && gRes.status);
+      }
+    } catch (err) {
+      console.warn('[carregarPedidos] erro ao buscar getLastGroups:', err);
+    }
+
+    if (savedGroups && Array.isArray(savedGroups) && savedGroups.length > 0) {
+      console.log('[carregarPedidos] grupos salvos encontrados (raw):', savedGroups);
+      const restored = savedGroups.map(groupRows => {
+        return groupRows.map(r => pedidosMap[String(r)]).filter(Boolean);
+      }).filter(g => g.length > 0);
+      console.log('[carregarPedidos] grupos restaurados (após map):', restored);
+      if (restored.length > 0) {
+        exibirGrupos(restored);
+        console.log('[carregarPedidos] exibido agrupamento restaurado');
+        return;
+      } else {
+        console.log('[carregarPedidos] nenhum grupo restaurado mapeou para pedidos atuais, caindo para agrupamento automático');
+      }
+    } else {
+      console.log('[carregarPedidos] nenhum grupo salvo encontrado, agrupando automaticamente');
+    }
+
+    // fallback: agrupar automaticamente e exibir
     const grupos = agruparEntregasMelhorado(pedidos);
+    console.log('[carregarPedidos] grupos automáticos:', grupos);
+    
     exibirGrupos(grupos);
 
   } catch (err) {
-    console.error('[carregarPedidos] erro:', err);
-    container.innerHTML = `<div class="block"><p>Erro ao carregar pedidos. Veja console (CORS / rede / URL).</p></div>`;
+    console.error('[carregarPedidos] erro geral:', err);
+    if (container) container.innerHTML = `<div class="block"><p>Erro ao carregar pedidos. Veja console. (${String(err)})</p></div>`;
     try { app.dialog.alert('Erro ao carregar pedidos. Verifique console e Network (DevTools).'); } catch(e){/* ignore */ }
   } finally {
-    // sempre esconder loading e reabilitar botão
     hideLoading();
     if (btn) { btn.classList.remove('disabled'); btn.removeAttribute('aria-disabled'); btn.disabled = false; }
+    console.log('[carregarPedidos] finalizado');
   }
 }
+// ----------------- fim carregarPedidos -----------------
+
+// --- Ouve evento "pedido:adicionado" e reage recarregando e agrupando ---
+window.addEventListener('pedido:adicionado', function (ev) {
+  console.log('[link2] evento pedido:adicionado recebido', ev && ev.detail);
+  try {
+    // chama a função que carrega pedidos e exibe grupos
+    if (typeof carregarPedidos === 'function') {
+      carregarPedidos();
+    } else {
+      console.warn('[link2] carregarPedidos() não disponível no momento');
+    }
+  } catch (err) {
+    console.error('[link2] erro ao reagrupar após pedido adicionado:', err);
+  }
+});
+
+// Ao entrar na página (ou quando a página de rotas for mostrada), checa o flag sessionStorage
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') {
+    try {
+      const v = sessionStorage.getItem('rotas:refresh_at');
+      if (v) {
+        console.log('[link2] sessionStorage rotas:refresh_at detectado => recarregando grupos');
+        sessionStorage.removeItem('rotas:refresh_at');
+        if (typeof carregarPedidos === 'function') carregarPedidos();
+      }
+    } catch (err) { console.warn('[link2] erro checando rotas:refresh_at', err); }
+  }
+});
+
+// Também checar logo ao inicializar a página (caso venha do index)
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  try {
+    const v = sessionStorage.getItem('rotas:refresh_at');
+    if (v) {
+      console.log('[link2] init: rotas:refresh_at detectado => recarregando');
+      sessionStorage.removeItem('rotas:refresh_at');
+      if (typeof carregarPedidos === 'function') carregarPedidos();
+    }
+  } catch (err) { /* ignore */ }
+} else {
+  window.addEventListener('DOMContentLoaded', function () {
+    try {
+      const v = sessionStorage.getItem('rotas:refresh_at');
+      if (v) {
+        console.log('[link2] DOMContentLoaded: rotas:refresh_at detectado => recarregando');
+        sessionStorage.removeItem('rotas:refresh_at');
+        if (typeof carregarPedidos === 'function') carregarPedidos();
+      }
+    } catch (err) { /* ignore */ }
+  });
+}
+
 
 
     function agruparEntregasMelhorado(entregas) {
@@ -288,11 +474,36 @@ async function marcarComoEntregueByRows(rows) {
       return fetch(`${SCRIPT_URL}?${params.toString()}`);
     });
     const results = await Promise.all(promises);
-    // tenta logar respostas (opcional)
+
+    // Log de cada resposta (opcional)
     for (const r of results) {
       try { console.log('updateStatus ok', r.status); } catch(e){}
     }
+
+    // Notifica usuário
     app.dialog.alert('Entrega(s) marcada(s) como entregue!');
+
+    // --- Remove do DOM os pedidos entregues (se não já removidos) ---
+    // procura e remove cards com esses rows
+    rows.forEach(r => {
+      const card = document.querySelector(`.pedido-card[data-row="${r}"]`);
+      if (card) card.remove();
+    });
+
+    // --- Atualiza o agrupamento salvo no servidor ---
+    // salva o estado atual (chama a função que você já tem)
+    try {
+      if (typeof saveGroupsState === 'function') {
+        // aguarda para garantir que o servidor recebeu o novo estado
+        await saveGroupsState();
+        console.log('[marcarComoEntregueByRows] agrupamento salvo após marcar entregue');
+      } else {
+        console.warn('[marcarComoEntregueByRows] saveGroupsState não disponível');
+      }
+    } catch (err) {
+      console.warn('[marcarComoEntregueByRows] erro ao salvar agrupamento após marcar entregue:', err);
+    }
+
   } catch (err) {
     console.error('Erro ao marcar entregues em lote:', err);
     app.dialog.alert('Erro ao atualizar entregas.');
@@ -302,6 +513,8 @@ async function marcarComoEntregueByRows(rows) {
     // Substitua por esta versão
 // --- substituir a função exibirGrupos inteira por esta ---
 function exibirGrupos(grupos) {
+  console.log('[exibirGrupos] chamado com grupos (length):', Array.isArray(grupos) ? grupos.length : 'n/a', grupos);
+
   const container = document.getElementById('lista-grupos');
   container.innerHTML = '';
 
@@ -399,21 +612,33 @@ function exibirGrupos(grupos) {
   });
 
   // --- Inicializa Sortable em cada lista (permite mover entre grupos) ---
-  const listEls = container.querySelectorAll('.grupo-list');
-  listEls.forEach(listEl => {
-    // eslint-disable-next-line no-undef
-    new Sortable(listEl, {
-      group: 'entregas',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      onEnd: function (evt) {
-        // Ao terminar o drag, atualiza totais e links das rotas
-        // evt.to é a lista de destino; evt.from lista origem; evt.item foi movido
-        updateAllGroupSummariesAndLinks();
-        console.log('movido', evt.item.dataset.row, 'para grupo', evt.to.dataset.grupoIndex);
+const listEls = container.querySelectorAll('.grupo-list');
+listEls.forEach(listEl => {
+  // eslint-disable-next-line no-undef
+  new Sortable(listEl, {
+    group: 'entregas',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: function (evt) {
+      // Ao terminar o drag, atualiza totais e links das rotas
+      updateAllGroupSummariesAndLinks();
+      console.log('[Sortable:onEnd] movido', evt.item.dataset.row, 'para grupo', evt.to.dataset.grupoIndex);
+
+      // salva estado dos grupos (debounced interno)
+      if (typeof saveGroupsState === 'function') {
+        // chama sem await (salva em background), mas com logs
+        saveGroupsState().then(() => {
+          console.log('[saveGroupsState] salvo com sucesso');
+        }).catch(err => {
+          console.error('[saveGroupsState] erro ao salvar agrupamento:', err);
+        });
+      } else {
+        console.warn('saveGroupsState não definido');
       }
-    });
+    }
   });
+});
+
 
   // Delegado: quando marcar "Entregue" em um grupo, pega linhas atuais daquele grupo do DOM
   container.querySelectorAll('.chk-entregue'); // garante que existam
@@ -478,9 +703,96 @@ function exibirGrupos(grupos) {
     return Array.from(listEl.children).map(ch => ch.dataset.row).filter(r => r);
   }
 
+  // ---------- Salvar estado dos grupos no servidor ----------
+/**
+ * Coleta os grupos atuais do DOM (por data-row) e envia para o Apps Script.
+ * POST JSON: { action: 'saveGroups', groups: [ [row1,row2], [row3,row4], ... ] }
+ */
+// ----------------- Substitua por este saveGroupsState -----------------
+// Substitua sua saveGroupsState atual por esta versão
+async function saveGroupsState() {
+  try {
+    const container = document.getElementById('lista-grupos');
+    if (!container) throw new Error('container lista-grupos não encontrado');
+
+    const gruposEls = Array.from(container.querySelectorAll('.grupo-entregas'));
+    const groups = gruposEls.map(grEl => {
+      const listEl = grEl.querySelector('.grupo-list');
+      const rows = Array.from(listEl.children).map(ch => ch.dataset.row).filter(r => r);
+      return rows;
+    });
+
+    console.log('[saveGroupsState] groups collected:', groups);
+    // salva no objeto global para debug/fallback
+    window.__debug_savedGroupsPayload = groups;
+
+    showLoading('Salvando agrupamento (form-urlencoded)...');
+
+    // Envia como application/x-www-form-urlencoded (isso evita preflight na maioria dos casos)
+    const params = new URLSearchParams();
+    params.append('action', 'saveGroups');
+    // envia groups como JSON em um campo
+    params.append('groupsJson', JSON.stringify(groups));
+
+    console.log('[saveGroupsState] POST form ->', SCRIPT_URL, params.toString().slice(0,200) + (params.toString().length>200 ? '...':'' ));
+
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        // NOTE: não coloque headers customizados além do Content-Type padrão
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: params.toString(),
+      cache: 'no-store'
+    });
+
+    console.log('[saveGroupsState] fetch concluído, status:', res.status, res.statusText);
+
+    let json = null;
+    try { json = await res.json(); } catch (e) { console.warn('[saveGroupsState] não consegui parsear JSON da resposta', e); }
+
+    hideLoading();
+
+    if (res.ok && json && (json.sucesso || json.success)) {
+      console.log('[saveGroupsState] salvo com sucesso:', json);
+      // opcional: toast
+      try { if (window.app && app.toast) app.toast.create({ text:'Agrupamento salvo', closeTimeout:1500 }).open(); } catch(e){/*ignore*/ }
+      return json;
+    } else {
+      console.warn('[saveGroupsState] resposta inesperada:', res.status, res.statusText, json);
+      // tenta fallback diagnóstico abaixo
+      throw new Error('Resposta inesperada do servidor ao salvar grupos');
+    }
+
+  } catch (err) {
+    try { hideLoading(); } catch(e){/*ignore*/ }
+    console.error('[saveGroupsState] erro:', err);
+
+    // fallback diagnóstico: abre uma URL GET com groupsJson (útil para ver a resposta do Apps Script)
+    try {
+      const payload = window.__debug_savedGroupsPayload || [];
+      const encoded = encodeURIComponent(JSON.stringify(payload));
+      const fallbackUrl = `${SCRIPT_URL}?action=saveGroups&groupsJson=${encoded}&_=${Date.now()}`;
+      console.log('[saveGroupsState] tentando fallback GET em (abrindo nova aba):', fallbackUrl);
+      // abre em nova aba para que você veja a resposta/erros do Apps Script
+      window.open(fallbackUrl, '_blank');
+    } catch (fbErr) {
+      console.error('[saveGroupsState] fallback GET falhou:', fbErr);
+    }
+
+    try {
+      if (window.app && app.toast) app.toast.create({ text: 'Erro ao salvar agrupamento. Veja console', closeTimeout: 3000 }).open();
+      else alert('Erro ao salvar agrupamento. Veja console.');
+    } catch(e){ alert('Erro ao salvar agrupamento. Veja console.'); }
+    throw err;
+  }
+}
+
+
   // inicializa os valores (caso o usuário não mova nada)
   updateAllGroupSummariesAndLinks();
 }
+
 
 
 /* === Handler para "Abrir Rota Otimizada": abre nova aba + copia link + notifica === */
