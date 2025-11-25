@@ -170,7 +170,13 @@
                       <div class="item-inner">
                         <div class="item-title item-label">Acréscimo / Desconto (R$)</div>
                         <div class="item-input-wrap">
-                          <input type="number" id="input-acrescimo" step="0.01" value="0.00" placeholder="Ex: 5.00 ou -2.50" />
+                          <!-- usar type="text" + inputmode para permitir '-' e decimal (vírgula ou ponto) -->
+<input
+  type="text"
+  id="input-acrescimo"
+  placeholder="Ex: 5.00 ou -2.50"
+/>
+
                         </div>
                       </div>
                     </li>
