@@ -184,7 +184,7 @@
                     <!-- Observações (campo livre) -->
                     <li class="item-content item-input">
                       <div class="item-inner">
-                        <div class="item-title item-label">Observações</div>
+                        <div class="item-title item-label">Observações/Contato</div>
                         <div class="item-input-wrap">
                           <textarea id="input-obs" placeholder="Observações do pedido (ex: sem cebola, entrega na porta)"></textarea>
                         </div>
@@ -436,7 +436,7 @@ function realizarLogin() {
   var senha = document.getElementById("login-password").value;
 
   // Substitua pela URL do seu Apps Script
-  var url = "https://script.google.com/macros/s/AKfycbz4R4rra2PoNCYsS_O4x6ucvgjGQmRdBKhOLquUK3idUVq9fPU1IDhwPf3VSmQWbsOh2g/exec";
+  var url = "https://script.google.com/macros/s/AKfycbzJbaI9NXlsM5FebKBckYrSaujNNyp8ieibfiQcsrOIxi5eXVH0bg865ZtDuSEpvSqDfA/exec";
 
   showLoading('Entrando...');
   fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
@@ -459,7 +459,7 @@ function realizarLogin() {
 
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4R4rra2PoNCYsS_O4x6ucvgjGQmRdBKhOLquUK3idUVq9fPU1IDhwPf3VSmQWbsOh2g/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJbaI9NXlsM5FebKBckYrSaujNNyp8ieibfiQcsrOIxi5eXVH0bg865ZtDuSEpvSqDfA/exec";
         // --------------------------------------------------------------------
 
         const PRECO_FRANGO_ASSADO = 49.90;
@@ -513,7 +513,15 @@ function realizarLogin() {
           const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
           const qtdRefri = parseRefrigerantes($$('#input-refrigerantes').val());
           const qtdArroz = $$('#chk-arroz').prop('checked') ? (parseInt($$('#qtd-arroz').val()) || 0) : 0;
-          const acrescimo = parseFloat($$('#input-acrescimo').val()) || 0.00;
+          let acrescimo = $$('#input-acrescimo').val().trim();
+
+// permitir números com vírgula ou ponto
+acrescimo = acrescimo.replace(',', '.');
+
+// prevenir NaN
+acrescimo = parseFloat(acrescimo);
+if (isNaN(acrescimo)) acrescimo = 0;
+
 
           const subtotal = (qtdFrango * PRECO_FRANGO_ASSADO) +
                           (qtdCoxa * PRECO_COXA_SOBRECOXA) +
@@ -598,7 +606,7 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
 }
 
 
-          if ((qtdFrango + qtdCoxa + qtdRefri + qtdArroz) === 0 || !nome || !endereco || !datetimeLocal) {
+          if (!nome || !endereco || !datetimeLocal) {
             app.dialog.alert('Preencha todos os campos obrigatórios e escolha ao menos um item.');
             return;
           }
@@ -625,6 +633,11 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
           };
 
                   try {
+                    // Garantir que o campo chegue com variações de nome (compatibilidade com server antigo)
+                    body.tipo_refrigerante = refrigerantesText;
+                    body.refrigerantes = refrigerantesText;
+                    body.tipoRefrigerante = refrigerantesText;
+
           showLoading('Enviando pedido...');
 
 
@@ -633,6 +646,9 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
           if (window.__editingRow) {
             body.action = 'updateOrder';
             body.row = window.__editingRow;
+            // DEBUG: inspeciona o body antes do envio (coloque aqui para testar)
+            console.log('[DEBUG] body antes de updateOrder:', body);
+
 
             const form = new URLSearchParams();
             Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
@@ -811,36 +827,36 @@ try {
               const horaAjustada = p.horario_entrega || '';
 
               const clienteNome = p.nome_cliente || p.nome || '-';
-const itemsText = items.join(' • ') || 'Sem itens';
-const card = `
-  <div class="card pedido-card" data-row="${sheetRow}" data-id="${i}">
-    <div class="card-header flex justify-between items-center">
-      <div class="pedido-itens" style="flex:1;">
-        <div style="font-weight:800; font-size:1.05rem; margin-bottom:6px;">${clienteNome}</div>
-        <div style="font-size:0.95rem; color:#666;">${itemsText}</div>
-      </div>
+              const itemsText = items.join(' • ') || 'Sem itens';
+              const card = `
+                <div class="card pedido-card" data-row="${sheetRow}" data-id="${i}">
+                  <div class="card-header flex justify-between items-center">
+                    <div class="pedido-itens" style="flex:1;">
+                      <div style="font-weight:800; font-size:1.05rem; margin-bottom:6px;">${clienteNome}</div>
+                      <div style="font-size:0.95rem; color:#666;">${itemsText}</div>
+                    </div>
 
-      <a href="#" class="button button-small btn-edit" data-row="${sheetRow}">✏️ Editar</a>
-<a href="#" class="button button-small btn-delete" data-row="${sheetRow}" style="margin-left:8px;">🗑️ Apagar</a>
-<div class="checkbox-container">
-        <label class="checkbox-label">
-          <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
-          <span>Entregue</span>
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
-          <span>Pago</span>
-        </label>
-      </div>
-    </div>
-    <div class="card-content card-content-padding">
-<p><b>Endereço:</b> ${p.endereco || '-'}${p.numero ? `, ${p.numero}` : ''}</p>
-      <p><b>Horário:</b> ${horaAjustada}</p>
-      <p><b>Total:</b> R$ ${preco}</p>
-      ${p.tipo_refrigerante ? `<p class="obs"><b>Obs:</b> ${p.tipo_refrigerante}</p>` : ''}
-    </div>
-  </div>
-`;
+                    <a href="#" class="button button-small btn-edit" data-row="${sheetRow}">✏️ Editar</a>
+              <a href="#" class="button button-small btn-delete" data-row="${sheetRow}" style="margin-left:8px;">🗑️ Apagar</a>
+              <div class="checkbox-container">
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="chk-entregue" ${p.entregue ? 'checked' : ''}>
+                        <span>Entregue</span>
+                      </label>
+                      <label class="checkbox-label">
+                        <input type="checkbox" class="chk-pago" ${p.pago ? 'checked' : ''}>
+                        <span>Pago</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="card-content card-content-padding">
+              <p><b>Endereço:</b> ${p.endereco || '-'}${p.numero ? `, ${p.numero}` : ''}</p>
+                    <p><b>Horário:</b> ${horaAjustada}</p>
+                    <p><b>Total:</b> R$ ${preco}</p>
+                    ${p.tipo_refrigerante ? `<p class="obs"><b>Obs:</b> ${p.tipo_refrigerante}</p>` : ''}
+                  </div>
+                </div>
+              `;
 
               $$('#produtos').append(card);
             });
@@ -873,6 +889,49 @@ const card = `
               }
             });
 
+$$(document).off('click', '.btn-delete');
+$$(document).on('click', '.btn-delete', async function (evt) {
+
+  console.log("🔥 CLICK NO BTN-DELETE DETECTADO");
+
+  evt.preventDefault();
+  const $btn = $$(this);   // <-- cria o $btn corretamente
+  const row = $btn.data('row');
+  console.log("ROW:", row);
+
+  if (!row) {
+    app.dialog.alert("Linha inválida.");
+    return;
+  }
+
+  const url = `${SCRIPT_URL}?action=deleteOrder&row=${encodeURIComponent(row)}`;
+
+  app.dialog.confirm('Apagar este pedido? Essa operação é irreversível.', async () => {
+    try {
+      showLoading('Apagando pedido...');
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+
+      let json = null;
+      try { json = await res.json(); } catch(e) { console.error(e); }
+
+      hideLoading();
+
+      if (json && (json.sucesso || json.success)) {
+        $btn.closest('.card').remove();   // <-- agora funciona
+        if (typeof updateProductionWidget === 'function') updateProductionWidget();
+        app.dialog.alert('Pedido apagado com sucesso.');
+      } else {
+        app.dialog.alert('Não foi possível apagar o pedido.');
+      }
+    } catch (err) {
+      hideLoading();
+      console.error(err);
+      app.dialog.alert('Erro ao apagar pedido.');
+    }
+  });
+});
+
+
             // abre popup de edição quando clicar no botão editar de um card
             $$('#produtos').off('click', '.btn-edit'); // garante que não duplique handlers
             $$('#produtos').on('click', '.btn-edit', function (evt) {
@@ -883,89 +942,6 @@ const card = `
                 app.dialog.alert('Dados do pedido não encontrados para edição.');
                 return;
               }
-            
-            // Handler delegado: apagar pedido
-$$('#produtos').off('click', '.btn-delete'); // segurança: limpa binds duplicados
-$$('#produtos').on('click', '.btn-delete', async function (evt) {
-  evt.preventDefault();
-  console.log('🟡 Clique detectado no botão de apagar.');
-
-  const $btn = $$(this);
-  const row = $btn.data('row');
-  console.log('🔍 Row extraída do botão:', row);
-
-  if (!row) { 
-    console.error('❌ Nenhuma linha associada ao botão.');
-    app.dialog.alert('Linha do pedido não informada.'); 
-    return; 
-  }
-
-  const url = `${SCRIPT_URL}?action=deleteOrder&row=${encodeURIComponent(row)}`;
-  console.log('🔗 URL gerada para requisição:', url);
-
-  if (window.app && app.dialog) {
-    app.dialog.confirm('Apagar este pedido? Essa operação é irreversível.', async () => {
-      try {
-        console.log('🕓 Enviando requisição para apagar pedido...');
-        showLoading('Apagando pedido...');
-        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-
-        let json = null;
-        try { 
-          json = await res.json(); 
-        } catch (e) { 
-          console.error('⚠️ Erro ao parsear JSON:', e);
-        }
-
-        hideLoading();
-        console.log('📩 Resposta recebida:', json);
-
-        if (json && (json.sucesso || json.success)) {
-          console.log('🟢 Pedido apagado com sucesso no servidor.');
-          $btn.closest('.card').remove();
-          console.log('🧹 Card removido do DOM.');
-          if (typeof updateProductionWidget === 'function') {
-            console.log('🔄 Atualizando widget de produção...');
-            updateProductionWidget();
-          }
-          app.dialog.alert('Pedido apagado com sucesso.');
-        } else {
-          console.warn('⚠️ Erro ao apagar no servidor:', json);
-          app.dialog.alert('Não foi possível apagar o pedido. Veja o console.');
-        }
-      } catch (err) {
-        hideLoading();
-        console.error('❌ Erro na requisição:', err);
-        app.dialog.alert('Erro ao apagar pedido. Verifique a conexão.');
-      }
-    });
-  } else {
-    console.warn('⚠️ App.dialog não disponível. Usando confirm()...');
-    if (!confirm('Apagar este pedido? Essa operação é irreversível.')) return;
-    try {
-      console.log('🕓 Enviando requisição para apagar pedido...');
-      showLoading('Apagando pedido...');
-      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-      const json = await res.json();
-      hideLoading();
-      console.log('📩 Resposta recebida:', json);
-
-      if (json && (json.sucesso || json.success)) {
-        console.log('🟢 Pedido apagado com sucesso no servidor.');
-        $btn.closest('.card').remove();
-        if (typeof updateProductionWidget === 'function') updateProductionWidget();
-        alert('Pedido apagado com sucesso.');
-      } else {
-        console.warn('⚠️ Resposta inesperada:', json);
-        alert('Não foi possível apagar o pedido. Veja o console.');
-      }
-    } catch (err) {
-      hideLoading();
-      console.error('❌ Erro ao apagar pedido:', err);
-      alert('Erro ao apagar pedido. Verifique a conexão.');
-    }
-  }
-});
 
               // marca que estamos editando essa linha
               window.__editingRow = row;
@@ -989,12 +965,14 @@ $$('#produtos').on('click', '.btn-delete', async function (evt) {
                 $$('#input-horario-entrega').val('');
               }
 
+              
+
               // quantidades e checkboxes
               const qtdFrango = Number(pedido.qntd_frango || pedido.qtd_frango || 0);
               const qtdCoxa   = Number(pedido.qntd_sobrecoxa || pedido.qtd_sobrecoxa || 0);
               const qtdArroz  = Number(pedido.qntd_arroz || pedido.qtd_arroz || 0);
-              const tipoRefri = pedido.tipo_refrigerante || pedido.tipo_refri || pedido.tipoRefri || pedido.tipoRefri || '';
-
+              
+              
               $$('#chk-frango').prop('checked', qtdFrango > 0);
               $$('#qtd-frango').val(qtdFrango).prop('disabled', !(qtdFrango > 0));
 
@@ -1004,8 +982,154 @@ $$('#produtos').on('click', '.btn-delete', async function (evt) {
               $$('#chk-arroz').prop('checked', qtdArroz > 0);
               $$('#qtd-arroz').val(qtdArroz).prop('disabled', !(qtdArroz > 0));
 
-              $$('#input-refrigerantes').val(tipoRefri);
-              $$('#input-acrescimo').val((pedido.acrescimo !== undefined && pedido.acrescimo !== null) ? String(pedido.acrescimo) : '0.00');
+              // --- Preencher Refrigerantes (robusto) ---
+(function fillRefrigerantes() {
+  // debug rápido: verifique o objeto pedido no console
+  console.log('[debug] pedido (refrigerantes) ->', pedido);
+
+  // Lista de chaves que tentaremos ler (ordem de preferência)
+  const keys = [
+    'refrigerantes', 'refri',
+    'tipo_refrigerante', 'tipoRefri', 'tipo_refri',
+    'tipoRefriUpper', 'tipo_refri_text', 'tipo_refrigerante_text',
+    'tipoRefrigerante', 'bebidas', 'itens', 'items'
+  ];
+
+  // tenta pegar valor direto por chaves comuns
+  let tipoRefriValue = '';
+  for (const k of keys) {
+    if (pedido[k] !== undefined && pedido[k] !== null && pedido[k] !== '') {
+      tipoRefriValue = pedido[k];
+      break;
+    }
+  }
+
+  // fallback: se o pedido tiver um campo que contenha 'refri' no nome, usa o primeiro
+  if (!tipoRefriValue) {
+    for (const k of Object.keys(pedido || {})) {
+      if (k.toLowerCase().includes('refri') || k.toLowerCase().includes('refriger')) {
+        tipoRefriValue = pedido[k];
+        break;
+      }
+    }
+  }
+
+  // Se veio como array de strings -> junta com ', '
+  if (Array.isArray(tipoRefriValue) && tipoRefriValue.every(x => typeof x === 'string')) {
+    tipoRefriValue = tipoRefriValue.join(', ');
+  }
+
+  // Se veio como array de objetos (ex: [{nome:'Coca', qnt:2}, ...]) -> tenta formatar
+  if (Array.isArray(tipoRefriValue) && tipoRefriValue.every(x => typeof x === 'object')) {
+    tipoRefriValue = tipoRefriValue.map(it => {
+      const nome = it.nome || it.name || it.produto || it.item || it.tipo || '';
+      const q = (it.qnt || it.qtd || it.quantidade || it.amount || '').toString();
+      return (q ? (q + ' ') : '') + nome;
+    }).filter(Boolean).join(', ');
+  }
+
+  // Se veio como objeto único (ex: {nome:'Coca', qnt:2}) -> formata
+  if (tipoRefriValue && typeof tipoRefriValue === 'object' && !Array.isArray(tipoRefriValue)) {
+    const it = tipoRefriValue;
+    if (it.nome || it.name || it.produto) {
+      const nome = it.nome || it.name || it.produto || it.tipo || '';
+      const q = (it.qnt || it.qtd || it.quantidade || it.amount || '').toString();
+      tipoRefriValue = (q ? (q + ' ') : '') + nome;
+    } else {
+      // converte objeto qualquer para string legível
+      tipoRefriValue = JSON.stringify(it);
+    }
+  }
+
+  // Se for número ou booleano, converte pra string
+  if (typeof tipoRefriValue !== 'string') {
+    tipoRefriValue = String(tipoRefriValue || '');
+  }
+
+  // Limpeza: remoção de múltiplos espaços e trim
+  tipoRefriValue = tipoRefriValue.replace(/\s+/g, ' ').trim();
+
+  // Preenche o campo do popup (verifique se id existe)
+  const $inputRefri = $$('#input-refrigerantes');
+  if ($inputRefri.length === 0) {
+    console.warn('[debug] input #input-refrigerantes não encontrado no DOM');
+  } else {
+    $inputRefri.val(tipoRefriValue);
+  }
+
+  console.log('[debug] valor preenchido em #input-refrigerantes ->', tipoRefriValue);
+})();
+
+
+
+              // --- Preencher Acréscimo / Desconto (ROBUSTO) ---
+              (function fillAcrescimo() {
+                // helper: tenta converter string com vírgula ou ponto para Number
+                function toNumberBR(v) {
+                  if (v === undefined || v === null) return null;
+                  const s = String(v).trim();
+                  if (s === '') return null;
+                  // remove espaços, trocar vírgula por ponto
+                  const cleaned = s.replace(/\s+/g, '').replace(',', '.');
+                  // remove qualquer caractere que não seja dígito, ponto ou sinal de menos
+                  const safe = cleaned.replace(/[^0-9.\-]/g, '');
+                  const n = parseFloat(safe);
+                  return Number.isFinite(n) ? n : null;
+                }
+
+                // possíveis campos onde o acréscimo pode estar
+                const candidates = [
+                  pedido.acrescimo,
+                  pedido.acréscimo,
+                  pedido.acrescimo_valor,
+                  pedido.valor_acrescimo,
+                  pedido.desconto,
+                  pedido.desconto_valor,
+                  pedido.preco_acrescimo,
+                  pedido.total_acrescimo
+                ];
+
+                // tenta extrair primeiro candidato válido
+                let acrescimoNum = null;
+                for (let c of candidates) {
+                  const n = toNumberBR(c);
+                  if (n !== null) { acrescimoNum = n; break; }
+                }
+
+                // se não achou nenhum, tenta inferir usando preco_total - subtotal
+                if (acrescimoNum === null) {
+                  const precoTotalNum = toNumberBR(pedido.preco_total) ?? toNumberBR(pedido.preco) ?? null;
+                  // calcula subtotal a partir das quantidades conhecidas e preços locais
+                  const qtdFrango = Number(pedido.qntd_frango || pedido.qtd_frango || 0) || 0;
+                  const qtdCoxa = Number(pedido.qntd_sobrecoxa || pedido.qtd_sobrecoxa || 0) || 0;
+                  // tenta extrair refri e arroz (se vierem)
+                  const qtdRefri = Number(pedido.qntd_refri || pedido.qtd_refri || 0) || 0;
+                  const qtdArroz = Number(pedido.qntd_arroz || pedido.qtd_arroz || 0) || 0;
+
+                  const SUB_FRANGO = typeof PRECO_FRANGO_ASSADO === 'number' ? PRECO_FRANGO_ASSADO : 49.90;
+                  const SUB_COXA = typeof PRECO_COXA_SOBRECOXA === 'number' ? PRECO_COXA_SOBRECOXA : 9.90;
+                  const SUB_REFRI = typeof PRECO_REFRIGERANTE === 'number' ? PRECO_REFRIGERANTE : 10.00;
+                  const SUB_ARROZ = typeof PRECO_ARROZ === 'number' ? PRECO_ARROZ : 8.00;
+
+                  const subtotalEstimado = (qtdFrango * SUB_FRANGO) + (qtdCoxa * SUB_COXA) + (qtdRefri * SUB_REFRI) + (qtdArroz * SUB_ARROZ);
+
+                  if (precoTotalNum !== null) {
+                    acrescimoNum = precoTotalNum - subtotalEstimado;
+                    console.log('[debug] acrescimo inferido = preco_total - subtotal =', precoTotalNum, '-', subtotalEstimado, '=', acrescimoNum);
+                  }
+                }
+
+                // fallback final
+                if (acrescimoNum === null) acrescimoNum = 0;
+
+                // formata para BR (vírgula) e coloca no campo
+                const valorFormatado = Number(acrescimoNum).toFixed(2).replace('.', ',');
+                $$('#input-acrescimo').val(valorFormatado);
+
+                // logs para debug — remova em produção se quiser
+                console.log('[debug] preencher acrescimo -> rawCandidates:', candidates, '-> acrescimoNum:', acrescimoNum, '-> exibido:', valorFormatado);
+              })();
+
               $$('#input-obs').val(pedido.observacoes || '');
 
               // recalcula preço só visualmente
@@ -1015,8 +1139,12 @@ $$('#produtos').on('click', '.btn-delete', async function (evt) {
               app.popup.open('#popup-add-pedido');
             });
 
+            
+
             // atualiza o widget de produção (mostra vendidos calculados)
             if (typeof updateProductionWidget === 'function') updateProductionWidget();
+
+            
 
           } catch (err) {
             console.error('❌ Erro ao carregar pedidos do dia:', err);
@@ -1024,7 +1152,13 @@ $$('#produtos').on('click', '.btn-delete', async function (evt) {
           } finally {
             hideLoading();
           }
+
+          
+
         }
+
+        
+
 
         // abrir popup: ajustar min
         $$('.popup-open[data-popup="#popup-add-pedido"]').on('click', ajustarMinHorario);
@@ -1217,6 +1351,44 @@ $$('#produtos').on('click', '.btn-delete', async function (evt) {
         if (titleEl) titleEl.textContent = 'Novo Pedido';
       });
     });
+
+
+
+    function limparFormularioPedido() {
+  // Campos simples
+  $$('#input-nome-cliente').val('');
+  $$('#input-refrigerantes').val('');
+  $$('#input-acrescimo').val('');
+  $$('#input-obs').val('');
+  $$('#input-endereco').val('');
+  $$('#input-numero').val('');
+  $$('#input-cep').val('');
+  $$('#input-horario-entrega').val('');
+  $$('#input-preco-total').val('');
+
+  // Sempre deixa cidade e UF padrão
+  $$('#input-cidade').val('Ribeirão Preto');
+  $$('#input-uf').val('SP');
+
+  // Checkboxes e quantidades
+  const campos = [
+    { chk: '#chk-frango', qtd: '#qtd-frango' },
+    { chk: '#chk-coxa', qtd: '#qtd-coxa' },
+    { chk: '#chk-arroz', qtd: '#qtd-arroz' },
+  ];
+
+  campos.forEach(c => {
+    $$(c.chk).prop('checked', false);
+    $$(c.qtd).val('0');
+    $$(c.qtd).prop('disabled', true);
+  });
+}
+
+
+// Sempre que qualquer popup for fechado, limpa os campos
+$$(document).on('popup:closed', '#popup-add-pedido', function () {
+  limparFormularioPedido();
+});
 
 
 
