@@ -157,7 +157,7 @@
                     <li class="item-content item-input">
                       <div class="item-inner">
                         <div class="item-title item-label">
-                          <label><input type="checkbox" id="chk-arroz"> Arroz (R$8,00)</label>
+                          <label><input type="checkbox" id="chk-arroz"> Arroz (R$10,00)</label>
                         </div>
                         <div class="item-input-wrap">
                           <input type="number" id="qtd-arroz" min="0" value="0" disabled />
@@ -465,7 +465,7 @@ function realizarLogin() {
         const PRECO_FRANGO_ASSADO = 49.90;
         const PRECO_COXA_SOBRECOXA = 9.90;
         const PRECO_REFRIGERANTE = 10.00;
-        const PRECO_ARROZ = 8.00; // novo
+        const PRECO_ARROZ = 10.00; // novo
 
         const $$ = Dom7; // Framework7 Dom7
 
@@ -515,12 +515,12 @@ function realizarLogin() {
           const qtdArroz = $$('#chk-arroz').prop('checked') ? (parseInt($$('#qtd-arroz').val()) || 0) : 0;
           let acrescimo = $$('#input-acrescimo').val().trim();
 
-// permitir números com vírgula ou ponto
-acrescimo = acrescimo.replace(',', '.');
+        // permitir números com vírgula ou ponto
+        acrescimo = acrescimo.replace(',', '.');
 
-// prevenir NaN
-acrescimo = parseFloat(acrescimo);
-if (isNaN(acrescimo)) acrescimo = 0;
+        // prevenir NaN
+        acrescimo = parseFloat(acrescimo);
+        if (isNaN(acrescimo)) acrescimo = 0;
 
 
           const subtotal = (qtdFrango * PRECO_FRANGO_ASSADO) +
@@ -558,7 +558,8 @@ if (isNaN(acrescimo)) acrescimo = 0;
           const qtdRefri = parseRefrigerantes(refrigerantesText);
 
           const precoTotal = parseFloat($$('#input-preco-total').val()) || 0;
-          const acrescimo = parseFloat($$('#input-acrescimo').val()) || 0;
+          let acrescimoText = $$('#input-acrescimo').val().trim().replace(',', '.');
+          const acrescimo = parseFloat(acrescimoText) || 0;
           const observacoes = $$('#input-obs').val().trim();
 
           // --- Verificação de estoque: impede vender mais do que produzido disponível ---
@@ -1109,7 +1110,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                   const SUB_FRANGO = typeof PRECO_FRANGO_ASSADO === 'number' ? PRECO_FRANGO_ASSADO : 49.90;
                   const SUB_COXA = typeof PRECO_COXA_SOBRECOXA === 'number' ? PRECO_COXA_SOBRECOXA : 9.90;
                   const SUB_REFRI = typeof PRECO_REFRIGERANTE === 'number' ? PRECO_REFRIGERANTE : 10.00;
-                  const SUB_ARROZ = typeof PRECO_ARROZ === 'number' ? PRECO_ARROZ : 8.00;
+                  const SUB_ARROZ = typeof PRECO_ARROZ === 'number' ? PRECO_ARROZ : 10.00;
 
                   const subtotalEstimado = (qtdFrango * SUB_FRANGO) + (qtdCoxa * SUB_COXA) + (qtdRefri * SUB_REFRI) + (qtdArroz * SUB_ARROZ);
 
