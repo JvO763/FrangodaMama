@@ -143,15 +143,25 @@
                       </div>
                     </li>
 
-                    <!-- Refrigerantes livre -->
+                    <!-- Refrigerantes com chips -->
                     <li class="item-content item-input">
                       <div class="item-inner">
-                        <div class="item-title item-label">Refrigerantes (ex: "2 Coca 2L, 1 Guaraná 1L")</div>
+                        <div class="item-title item-label">Refrigerantes</div>
                         <div class="item-input-wrap">
-                          <input type="text" id="input-refrigerantes" placeholder="Ex: 2 Coca 2L, 1 Guaraná 1L">
+                          <!-- área visual de chips -->
+                          <div id="refri-chips" class="chips-container" aria-live="polite"></div>
+
+                          <!-- mantém o input com o mesmo id para compatibilidade com o seu JS existente -->
+                          <input type="hidden" id="input-refrigerantes" name="tipo_refrigerante" value="">
+
+                          <!-- botão para abrir sugestões (popup) -->
+                          <button type="button" id="btn-refri-sugestoes" class="button button-outline" style="margin-top:8px;">
+                            Adicionar Refrigerante
+                          </button>
                         </div>
                       </div>
                     </li>
+
 
                     <!-- Arroz -->
                     <li class="item-content item-input">
@@ -312,7 +322,9 @@
       <div id="production-panel" role="dialog" aria-label="Produção e vendas do dia">
         <div class="prod-row"><div class="prod-label">🐔 Frango</div><div class="prod-value" id="pv-frango">0 / 0</div></div>
         <div class="prod-row"><div class="prod-label">🍗 Coxa</div><div class="prod-value" id="pv-coxa">0 / 0</div></div>
-        <div class="prod-row"><div class="prod-label">🥤 Refrigerante</div><div class="prod-value" id="pv-refri">0 / 0</div></div>
+        <div class="prod-row"><div class="prod-label">🥤 Coca-Cola Original</div><div class="prod-value" id="pv-coca-original">0 / 0</div></div>
+        <div class="prod-row"><div class="prod-label">🥤 Coca-Cola Zero</div><div class="prod-value" id="pv-coca-zero">0 / 0</div></div>
+        <div class="prod-row"><div class="prod-label">🥤 Cotuba</div><div class="prod-value" id="pv-cotuba">0 / 0</div></div>
 
         <div class="actions">
           <div style="display:flex; gap:6px;">
@@ -331,9 +343,17 @@
             <label style="min-width:80px;">🍗 Coxas</label>
             <input type="number" id="inp-prod-coxa" min="0" value="0">
           </div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <label style="min-width:80px;">🥤 Coca Original</label>
+            <input type="number" id="inp-prod-coca-original" min="0" value="0">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <label style="min-width:80px;">🥤 Coca Zero</label>
+            <input type="number" id="inp-prod-coca-zero" min="0" value="0">
+          </div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <label style="min-width:80px;">🥤 Refris</label>
-            <input type="number" id="inp-prod-refri" min="0" value="0">
+            <label style="min-width:80px;">🥤 Cotuba</label>
+            <input type="number" id="inp-prod-cotuba" min="0" value="0">
           </div>
           <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
             <button id="btn-save-produzidos" class="small-btn">Salvar</button>
@@ -436,7 +456,7 @@ function realizarLogin() {
   var senha = document.getElementById("login-password").value;
 
   // Substitua pela URL do seu Apps Script
-  var url = "https://script.google.com/macros/s/AKfycbzJbaI9NXlsM5FebKBckYrSaujNNyp8ieibfiQcsrOIxi5eXVH0bg865ZtDuSEpvSqDfA/exec";
+  var url = "https://script.google.com/macros/s/AKfycbzdccyCchpfVg4xbDPfNgZ82Fcq_sKGUP8Qaeh7U7Pib9ZA1LzBEV_TwjKmgBI8mjOZvQ/exec";
 
   showLoading('Entrando...');
   fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
@@ -459,7 +479,7 @@ function realizarLogin() {
 
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJbaI9NXlsM5FebKBckYrSaujNNyp8ieibfiQcsrOIxi5eXVH0bg865ZtDuSEpvSqDfA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdccyCchpfVg4xbDPfNgZ82Fcq_sKGUP8Qaeh7U7Pib9ZA1LzBEV_TwjKmgBI8mjOZvQ/exec";
         // --------------------------------------------------------------------
 
         const PRECO_FRANGO_ASSADO = 49.90;
@@ -468,6 +488,173 @@ function realizarLogin() {
         const PRECO_ARROZ = 10.00; // novo
 
         const $$ = Dom7; // Framework7 Dom7
+
+        // ====== Início: código para chips de refrigerante ======
+const refriOpcoes = ["coca-cola original", "coca-cola zero", "cotuba"];
+let refriSelecionados = []; // array com strings (cada item representa 1 unidade escolhida)
+
+// refs DOM (serão encontradas dentro do popup)
+const chipsContainer = document.getElementById('refri-chips');
+const hiddenInputRefri = document.getElementById('input-refrigerantes');
+const btnSugestoes = document.getElementById('btn-refri-sugestoes');
+
+// adiciona opção (pode ser chamada várias vezes)
+function addRefrigerante(nome) {
+  refriSelecionados.push(nome);
+  syncInputRefrigerantes();
+  atualizarPrecoTotal();
+}
+
+function syncInputRefrigerantes() {
+  $$('#input-refrigerantes').val(refriSelecionados.join(', '));
+}
+
+
+// remove pelo índice
+function removerRefrigerante(index) {
+  refriSelecionados.splice(index, 1);
+  syncInputRefrigerantes();
+  atualizarPrecoTotal();
+}
+
+// reconstrói DOM dos chips
+function atualizarChips() {
+  if (!chipsContainer) return;
+  chipsContainer.innerHTML = '';
+  refriSelecionados.forEach((r, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `<span class="count">1×</span><span class="label">${r}</span><span class="close-chip" data-i="${i}">&times;</span>`;
+    chipsContainer.appendChild(chip);
+    atualizarPrecoTotal();
+  });
+  // listeners dos X
+  chipsContainer.querySelectorAll('.close-chip').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      const idx = Number(ev.currentTarget.dataset.i);
+      removerRefrigerante(idx);
+    });
+    atualizarPrecoTotal();
+  });
+  atualizarPrecoTotal();
+}
+
+// monta string tipo: "1 Coca-Cola Original, 2 Cotuba"
+function atualizarHiddenInput() {
+  if (!hiddenInputRefri) return;
+  const mapa = {};
+  refriSelecionados.forEach(r => mapa[r] = (mapa[r] || 0) + 1);
+  const partes = Object.entries(mapa).map(([nome, qnt]) => `${qnt} ${nome}`);
+  hiddenInputRefri.value = partes.join(', ');
+  // Dispara evento input (caso algum handler antigo esteja escutando)
+  const ev = new Event('input', { bubbles: true, cancelable: true });
+  hiddenInputRefri.dispatchEvent(ev);
+}
+
+// Abre um popup simples com as opções (usa Framework7 popup)
+if (btnSugestoes) {
+  btnSugestoes.addEventListener('click', () => {
+    const listHtml = refriOpcoes
+      .map(op => `
+        <li class="popup-refri-item" data-valor="${op}" 
+            style="padding: 12px; font-size: 17px; background: #ffffff; border-bottom: 1px solid #ccc; color: #333; cursor: pointer;">
+          ${op}
+        </li>
+      `)
+      .join('');
+
+    const popupHtml = `
+      <div class="popup" id="popup-refri-sugestoes" style="background: #f5f5f5;">
+        <div class="view">
+          <div class="page">
+
+            <!-- NAVBAR -->
+            <div class="navbar" style="background: #ffffff; border-bottom: 1px solid #ccc;">
+              <div class="navbar-inner">
+
+                <div class="title" style="color: #333; font-weight: 600;">
+                  Escolher Refrigerante
+                </div>
+
+                <div class="right">
+                  <a href="#" class="link popup-close"
+                     style="font-size: 20px; font-weight: bold; color: red;">
+                    X
+                  </a>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- LISTA -->
+            <div class="page-content" style="background: #f5f5f5;">
+              <div class="list simple-list">
+                <ul>${listHtml}</ul>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    `;
+
+    const pop = app.popup.create({ content: popupHtml });
+    pop.open();
+
+    // EVENTO DE CLIQUE NAS OPÇÕES
+    document.querySelectorAll('#popup-refri-sugestoes .popup-refri-item').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const val = e.currentTarget.dataset.valor;
+        addRefrigerante(val);
+        pop.close();
+      });
+    });
+  });
+}
+
+// Se o hidden for preenchido (por edit), sincroniza chips com o value
+function syncChipsFromHidden() {
+  const v = (hiddenInputRefri && hiddenInputRefri.value) ? String(hiddenInputRefri.value).trim() : '';
+  if (!v) { refriSelecionados = []; atualizarChips(); return; }
+  // aceita formatos: "1 Coca, 2 Fanta" ou "Coca, Fanta" etc.
+  const parts = v.split(',').map(s => s.trim()).filter(Boolean);
+  const newArr = [];
+  parts.forEach(p => {
+    const m = p.match(/^(\d+)\s+(.*)$/);
+    if (m) {
+      const q = Number(m[1]);
+      const nome = m[2].trim();
+      for (let i=0;i<q;i++) newArr.push(nome);
+    } else {
+      // sem número: cada entrada conta como 1
+      newArr.push(p);
+    }
+  });
+  refriSelecionados = newArr;
+  atualizarChips();
+}
+
+// Quando o popup de pedido abrir, sincroniza chips (útil para edição)
+$$(document).on('popup:opened', '#popup-add-pedido', function () {
+  syncChipsFromHidden();
+});
+
+// garantindo que se alguém setar o hidden programaticamente, sincronizamos (observer leve)
+if (hiddenInputRefri) {
+  // captura mudanças de value via setInterval leve (inofensivo) — evita mexer em seu código existente
+  let lastHiddenVal = hiddenInputRefri.value || '';
+  setInterval(() => {
+    if (!hiddenInputRefri) return;
+    const cur = hiddenInputRefri.value || '';
+    if (cur !== lastHiddenVal) {
+      lastHiddenVal = cur;
+      syncChipsFromHidden();
+      // não sobrescreve o hidden — apenas atualiza UI
+    }
+  }, 600);
+}
+// ====== Fim: código para chips de refrigerante ======
+
 
         // habilitar/desabilitar quantidades quando checkbox mudar
         $$('#chk-frango').on('change', () => {
@@ -508,29 +695,85 @@ function realizarLogin() {
           return total;
         }
 
-        function atualizarPrecoTotal(){
+        function parseRefrigerantesLista(texto) {
+          if (!texto) return [];
+          return texto.split(',')
+                      .map(t => t.trim())
+                      .filter(t => t.length > 0);
+        }
+
+
+        function calcularPrecoRefrigerantesLista(lista) {
+          let total = 0;
+
+          lista.forEach(item => {
+            const nome = item.toLowerCase();
+
+            if (nome.includes("cotuba")) {
+              total += 8; // Cotuba custa 8
+            } else {
+              total += 10; // Coca original e zero custam 10
+            }
+          });
+
+          return total;
+        }
+
+
+        // function atualizarPrecoTotal(){
+        //   const qtdFrango = parseInt($$('#qtd-frango').val()) || 0;
+        //   const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
+        //   const listaRefri = Array.isArray(refriSelecionados)
+        //     ? refriSelecionados
+        //     : [];
+
+        //   const qtdArroz = $$('#chk-arroz').prop('checked') ? (parseInt($$('#qtd-arroz').val()) || 0) : 0;
+        //   let acrescimo = $$('#input-acrescimo').val().trim();
+
+        //   // permitir números com vírgula ou ponto
+        //   acrescimo = acrescimo.replace(',', '.');
+
+        //   // prevenir NaN
+        //   acrescimo = parseFloat(acrescimo);
+        //   if (isNaN(acrescimo)) acrescimo = 0;
+
+
+        //   const subtotal = (qtdFrango * PRECO_FRANGO_ASSADO) +
+        //                   (qtdCoxa * PRECO_COXA_SOBRECOXA) +
+        //                   calcularPrecoRefrigerantesLista(listaRefri) +
+        //                   (qtdArroz * PRECO_ARROZ);
+
+        //   const total = subtotal + acrescimo;
+        //   $$('#input-preco-total').val(total.toFixed(2));
+        // }
+
+        function atualizarPrecoTotal() {
           const qtdFrango = parseInt($$('#qtd-frango').val()) || 0;
           const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
-          const qtdRefri = parseRefrigerantes($$('#input-refrigerantes').val());
-          const qtdArroz = $$('#chk-arroz').prop('checked') ? (parseInt($$('#qtd-arroz').val()) || 0) : 0;
+          const qtdArroz = $$('#chk-arroz').prop('checked')
+            ? (parseInt($$('#qtd-arroz').val()) || 0)
+            : 0;
+
           let acrescimo = $$('#input-acrescimo').val().trim();
+          acrescimo = acrescimo.replace(',', '.');
+          acrescimo = parseFloat(acrescimo);
+          if (isNaN(acrescimo)) acrescimo = 0;
 
-        // permitir números com vírgula ou ponto
-        acrescimo = acrescimo.replace(',', '.');
+          // ✅ FONTE ÚNICA
+          const listaRefri = Array.isArray(refriSelecionados)
+            ? refriSelecionados
+            : [];
 
-        // prevenir NaN
-        acrescimo = parseFloat(acrescimo);
-        if (isNaN(acrescimo)) acrescimo = 0;
-
-
-          const subtotal = (qtdFrango * PRECO_FRANGO_ASSADO) +
-                          (qtdCoxa * PRECO_COXA_SOBRECOXA) +
-                          (qtdRefri * PRECO_REFRIGERANTE) +
-                          (qtdArroz * PRECO_ARROZ);
+          const subtotal =
+            (qtdFrango * PRECO_FRANGO_ASSADO) +
+            (qtdCoxa * PRECO_COXA_SOBRECOXA) +
+            calcularPrecoRefrigerantesLista(listaRefri) +
+            (qtdArroz * PRECO_ARROZ);
 
           const total = subtotal + acrescimo;
           $$('#input-preco-total').val(total.toFixed(2));
         }
+
 
         // extrai data e hora de um datetime-local (string) no formato esperado
         function splitDateTimeLocal(datetimeLocal){
@@ -541,6 +784,19 @@ function realizarLogin() {
           const timeOnly = (timePart || '').split(':').slice(0,2).join(':');
           return { date: datePart, time: timeOnly };
         }
+
+
+        function formatarRefrigerantesLista(lista) {
+          const mapa = {};
+          lista.forEach(item => {
+            if (!mapa[item]) mapa[item] = 0;
+            mapa[item]++;
+          });
+          return Object.entries(mapa)
+                      .map(([nome, qtd]) => `${qtd} ${nome}`)
+                      .join(', ');
+        }
+
 
         // envia pedido
         $$('#btn-add-pedido').off('click');
@@ -555,7 +811,10 @@ function realizarLogin() {
           const qtdFrango = $$('#chk-frango').prop('checked') ? parseInt($$('#qtd-frango').val()) || 0 : 0;
           const qtdCoxa  = $$('#chk-coxa').prop('checked') ? parseInt($$('#qtd-coxa').val()) || 0 : 0;
           const qtdArroz = $$('#chk-arroz').prop('checked') ? parseInt($$('#qtd-arroz').val()) || 0 : 0;
-          const qtdRefri = parseRefrigerantes(refrigerantesText);
+          const listaRefri = refrigerantesText
+          ? refrigerantesText.split(',').map(s => s.trim()).filter(s => s.length > 0)
+          : [];
+
 
           const precoTotal = parseFloat($$('#input-preco-total').val()) || 0;
           let acrescimoText = $$('#input-acrescimo').val().trim().replace(',', '.');
@@ -621,7 +880,7 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
             horario_entrega,
             qntd_frango: qtdFrango,
             qntd_sobrecoxa: qtdCoxa,
-            qntd_refri: qtdRefri,
+            qntd_refri: listaRefri.length,
             qntd_arroz: qtdArroz,
             nome_cliente: nome,
             endereco,
@@ -635,9 +894,12 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
 
                   try {
                     // Garantir que o campo chegue com variações de nome (compatibilidade com server antigo)
-                    body.tipo_refrigerante = refrigerantesText;
-                    body.refrigerantes = refrigerantesText;
-                    body.tipoRefrigerante = refrigerantesText;
+const refrigerantesFormatados = formatarRefrigerantesLista(listaRefri);
+
+body.tipo_refrigerante = refrigerantesFormatados;
+body.refrigerantes = refrigerantesFormatados;
+body.tipoRefrigerante = refrigerantesFormatados;
+
 
           showLoading('Enviando pedido...');
 
@@ -984,84 +1246,58 @@ $$(document).on('click', '.btn-delete', async function (evt) {
               $$('#qtd-arroz').val(qtdArroz).prop('disabled', !(qtdArroz > 0));
 
               // --- Preencher Refrigerantes (robusto) ---
+              // --- Preencher Refrigerantes (robusto: parseia "2 Cotuba") ---
 (function fillRefrigerantes() {
-  // debug rápido: verifique o objeto pedido no console
-  console.log('[debug] pedido (refrigerantes) ->', pedido);
 
-  // Lista de chaves que tentaremos ler (ordem de preferência)
-  const keys = [
-    'refrigerantes', 'refri',
-    'tipo_refrigerante', 'tipoRefri', 'tipo_refri',
-    'tipoRefriUpper', 'tipo_refri_text', 'tipo_refrigerante_text',
-    'tipoRefrigerante', 'bebidas', 'itens', 'items'
-  ];
+  function parseRefrigerantesBR(texto) {
+    if (!texto) return [];
 
-  // tenta pegar valor direto por chaves comuns
-  let tipoRefriValue = '';
-  for (const k of keys) {
-    if (pedido[k] !== undefined && pedido[k] !== null && pedido[k] !== '') {
-      tipoRefriValue = pedido[k];
-      break;
-    }
-  }
+    return texto.split(',').map(item => {
+      item = item.trim();
 
-  // fallback: se o pedido tiver um campo que contenha 'refri' no nome, usa o primeiro
-  if (!tipoRefriValue) {
-    for (const k of Object.keys(pedido || {})) {
-      if (k.toLowerCase().includes('refri') || k.toLowerCase().includes('refriger')) {
-        tipoRefriValue = pedido[k];
-        break;
+      // Caso: "2 Cotuba" → vira duas unidades: ["Cotuba","Cotuba"]
+      const match = item.match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        const qtd = parseInt(match[1], 10);
+        const nome = match[2];
+        return Array(qtd).fill(nome); 
       }
-    }
+
+      // Caso: "Cotuba"
+      return [item];
+    }).flat();
   }
 
-  // Se veio como array de strings -> junta com ', '
-  if (Array.isArray(tipoRefriValue) && tipoRefriValue.every(x => typeof x === 'string')) {
-    tipoRefriValue = tipoRefriValue.join(', ');
-  }
+  // tenta pegar o campo correto (sem toLowerCase)
+  const valor =
+    pedido.tipo_refri ||
+    pedido.tipo_refrigerante ||
+    pedido.refrigerantes ||
+    pedido.refri ||
+    pedido.bebidas ||
+    pedido.itens ||
+    pedido.items ||
+    '';
 
-  // Se veio como array de objetos (ex: [{nome:'Coca', qnt:2}, ...]) -> tenta formatar
-  if (Array.isArray(tipoRefriValue) && tipoRefriValue.every(x => typeof x === 'object')) {
-    tipoRefriValue = tipoRefriValue.map(it => {
-      const nome = it.nome || it.name || it.produto || it.item || it.tipo || '';
-      const q = (it.qnt || it.qtd || it.quantidade || it.amount || '').toString();
-      return (q ? (q + ' ') : '') + nome;
-    }).filter(Boolean).join(', ');
-  }
+  // agora valor vira uma lista de unidades individuais
+  const listaUnidades = parseRefrigerantesBR(valor);
 
-  // Se veio como objeto único (ex: {nome:'Coca', qnt:2}) -> formata
-  if (tipoRefriValue && typeof tipoRefriValue === 'object' && !Array.isArray(tipoRefriValue)) {
-    const it = tipoRefriValue;
-    if (it.nome || it.name || it.produto) {
-      const nome = it.nome || it.name || it.produto || it.tipo || '';
-      const q = (it.qnt || it.qtd || it.quantidade || it.amount || '').toString();
-      tipoRefriValue = (q ? (q + ' ') : '') + nome;
-    } else {
-      // converte objeto qualquer para string legível
-      tipoRefriValue = JSON.stringify(it);
-    }
-  }
+  console.log('[debug] refrigerantes parseados (unidades individuais):', listaUnidades);
 
-  // Se for número ou booleano, converte pra string
-  if (typeof tipoRefriValue !== 'string') {
-    tipoRefriValue = String(tipoRefriValue || '');
-  }
+  // limpa lista interna
+  refriSelecionados = [];
 
-  // Limpeza: remoção de múltiplos espaços e trim
-  tipoRefriValue = tipoRefriValue.replace(/\s+/g, ' ').trim();
+  // adiciona cada unidade separadamente
+  listaUnidades.forEach(nome => {
+    addRefrigerante(nome);  // mantém capitalização original
+  });
 
-  // Preenche o campo do popup (verifique se id existe)
-  const $inputRefri = $$('#input-refrigerantes');
-  if ($inputRefri.length === 0) {
-    console.warn('[debug] input #input-refrigerantes não encontrado no DOM');
-  } else {
-    $inputRefri.val(tipoRefriValue);
-  }
+  // mostra no campo do formulário cada unidade separada
+  $$('#input-refrigerantes').val(listaUnidades.join(', '));
 
-  console.log('[debug] valor preenchido em #input-refrigerantes ->', tipoRefriValue);
 })();
 
-
+              console.log('[DEBUG pedido keys]', Object.keys(pedido));
 
               // --- Preencher Acréscimo / Desconto (ROBUSTO) ---
               (function fillAcrescimo() {
@@ -1081,6 +1317,9 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                 // possíveis campos onde o acréscimo pode estar
                 const candidates = [
                   pedido.acrescimo,
+                  pedido["acrescimo/desconto"],   // 🔴 ESSENCIAL
+                  pedido["Acréscimo/Desconto"],
+                  pedido["ACRESCIMO/DESCONTO"],
                   pedido.acréscimo,
                   pedido.acrescimo_valor,
                   pedido.valor_acrescimo,
@@ -1090,34 +1329,12 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                   pedido.total_acrescimo
                 ];
 
+
                 // tenta extrair primeiro candidato válido
                 let acrescimoNum = null;
                 for (let c of candidates) {
                   const n = toNumberBR(c);
                   if (n !== null) { acrescimoNum = n; break; }
-                }
-
-                // se não achou nenhum, tenta inferir usando preco_total - subtotal
-                if (acrescimoNum === null) {
-                  const precoTotalNum = toNumberBR(pedido.preco_total) ?? toNumberBR(pedido.preco) ?? null;
-                  // calcula subtotal a partir das quantidades conhecidas e preços locais
-                  const qtdFrango = Number(pedido.qntd_frango || pedido.qtd_frango || 0) || 0;
-                  const qtdCoxa = Number(pedido.qntd_sobrecoxa || pedido.qtd_sobrecoxa || 0) || 0;
-                  // tenta extrair refri e arroz (se vierem)
-                  const qtdRefri = Number(pedido.qntd_refri || pedido.qtd_refri || 0) || 0;
-                  const qtdArroz = Number(pedido.qntd_arroz || pedido.qtd_arroz || 0) || 0;
-
-                  const SUB_FRANGO = typeof PRECO_FRANGO_ASSADO === 'number' ? PRECO_FRANGO_ASSADO : 49.90;
-                  const SUB_COXA = typeof PRECO_COXA_SOBRECOXA === 'number' ? PRECO_COXA_SOBRECOXA : 9.90;
-                  const SUB_REFRI = typeof PRECO_REFRIGERANTE === 'number' ? PRECO_REFRIGERANTE : 10.00;
-                  const SUB_ARROZ = typeof PRECO_ARROZ === 'number' ? PRECO_ARROZ : 10.00;
-
-                  const subtotalEstimado = (qtdFrango * SUB_FRANGO) + (qtdCoxa * SUB_COXA) + (qtdRefri * SUB_REFRI) + (qtdArroz * SUB_ARROZ);
-
-                  if (precoTotalNum !== null) {
-                    acrescimoNum = precoTotalNum - subtotalEstimado;
-                    console.log('[debug] acrescimo inferido = preco_total - subtotal =', precoTotalNum, '-', subtotalEstimado, '=', acrescimoNum);
-                  }
                 }
 
                 // fallback final
@@ -1131,13 +1348,33 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                 console.log('[debug] preencher acrescimo -> rawCandidates:', candidates, '-> acrescimoNum:', acrescimoNum, '-> exibido:', valorFormatado);
               })();
 
+              // --- Preencher Preço Total (se existir no pedido) ---
+              (function fillPrecoTotal() {
+                let preco;
+
+                // tenta pegar pelos nomes mais comuns
+                preco = pedido.preco_total ?? pedido.preco ?? pedido.precoTotal ?? null;
+
+                if (preco !== null && preco !== undefined && preco !== "") {
+                  const num = Number(preco);
+                  if (!isNaN(num)) {
+                    // formata para BR (duas casas, vírgula)
+                    const valorFormatado = num.toFixed(2).replace('.', ',');
+                    $$('#input-preco-total').val(valorFormatado);
+                    console.log("[debug] preço total preenchido:", valorFormatado);
+                  }
+                } else {
+                  $$('#input-preco-total').val('');
+                }
+              })();
+
+
               $$('#input-obs').val(pedido.observacoes || '');
 
               // recalcula preço só visualmente
               atualizarPrecoTotal();
-
-              // abre popup
               app.popup.open('#popup-add-pedido');
+
             });
 
             
@@ -1157,10 +1394,6 @@ $$(document).on('click', '.btn-delete', async function (evt) {
           
 
         }
-
-        
-
-
         // abrir popup: ajustar min
         $$('.popup-open[data-popup="#popup-add-pedido"]').on('click', ajustarMinHorario);
 
@@ -1201,124 +1434,206 @@ $$(document).on('click', '.btn-delete', async function (evt) {
 
         // expose carregarPedidosDoDia to global (in case other scripts call it)
         window.carregarPedidosDoDia = carregarPedidosDoDia;
-        /* ---------- Production widget logic ---------- */
 
-      function getTodayKey() {
-        const now = new Date();
-        const offsetMs = now.getTimezoneOffset() * 60 * 1000;
-        const dateStr = new Date(now.getTime() - offsetMs).toISOString().slice(0,10);
-        return dateStr;
+// Gera a chave de storage (mantemos igual)
+function getTodayKey() {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const dateStr = new Date(now.getTime() - offsetMs).toISOString().slice(0,10);
+  return dateStr;
+}
+function storageKeyFor(dateStr){ return `produzidos:${dateStr}`; }
+
+// Retorna objeto com chaves: frango, coxa, coca_original, coca_zero, cotuba
+function getProducedCounts(dateStr) {
+  const key = storageKeyFor(dateStr || getTodayKey());
+  const raw = sessionStorage.getItem(key);
+  if(!raw) {
+    return { frango:0, coxa:0, coca_original:0, coca_zero:0, cotuba:0 };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    // compatibilidade com formato antigo {frango, coxa, refri}
+    if (parsed && typeof parsed === 'object') {
+      const hasOldRef = ('refri' in parsed) && !('coca_original' in parsed || 'coca_zero' in parsed || 'cotuba' in parsed);
+      if (hasOldRef) {
+        // tenta mapear o refri antigo para cotuba (fallback) e zera os outros
+        return {
+          frango: Number(parsed.frango || 0),
+          coxa: Number(parsed.coxa || 0),
+          coca_original: 0,
+          coca_zero: 0,
+          cotuba: Number(parsed.refri || 0)
+        };
+      } else {
+        return {
+          frango: Number(parsed.frango || 0),
+          coxa: Number(parsed.coxa || 0),
+          coca_original: Number(parsed.coca_original || parsed.cocaOriginal || 0),
+          coca_zero: Number(parsed.coca_zero || parsed.cocaZero || 0),
+          cotuba: Number(parsed.cotuba || 0)
+        };
       }
-      function storageKeyFor(dateStr){ return `produzidos:${dateStr}`; }
+    }
+  } catch(e) {
+    // ignore parse error e retorna defaults
+  }
+  return { frango:0, coxa:0, coca_original:0, coca_zero:0, cotuba:0 };
+}
 
-      function getProducedCounts(dateStr) {
-        const key = storageKeyFor(dateStr || getTodayKey());
-        const raw = sessionStorage.getItem(key);
-        if(!raw) return { frango:0, coxa:0, refri:0 };
-        try { return JSON.parse(raw); } catch(e){ return { frango:0, coxa:0, refri:0 }; }
-      }
-      function setProducedCounts(dateStr, obj){
-        const key = storageKeyFor(dateStr || getTodayKey());
-        sessionStorage.setItem(key, JSON.stringify({
-          frango: Number(obj.frango||0),
-          coxa: Number(obj.coxa||0),
-          refri: Number(obj.refri||0)
-        }));
-      }
+// Salva novo formato (aceita objeto com as chaves)
+function setProducedCounts(dateStr, obj){
+  const key = storageKeyFor(dateStr || getTodayKey());
+  const payload = {
+    frango: Number(obj.frango||0),
+    coxa: Number(obj.coxa||0),
+    coca_original: Number(obj.coca_original||0),
+    coca_zero: Number(obj.coca_zero||0),
+    cotuba: Number(obj.cotuba||0)
+  };
+  sessionStorage.setItem(key, JSON.stringify(payload));
+}
 
-      /* soma quantos foram vendidos no dia a partir de window.__pedidosMap (preenchido por carregarPedidosDoDia) */
-      function computeSoldCounts() {
-        const map = window.__pedidosMap || {};
-        let sold = { frango:0, coxa:0, refri:0 };
-        Object.values(map).forEach(p => {
-          sold.frango += Number(p.qntd_frango || p.qtd_frango || 0) || 0;
-          sold.coxa  += Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0) || 0;
-          sold.refri += Number(p.qntd_refri || p.qtd_refri || 0) || 0;
-        });
-        return sold;
-      }
+// Parser para string de refrigerantes (formatos aceitos: "2 Coca-Cola Original, 1 Cotuba" ou "Coca Zero, Cotuba")
+function parseTipoRefriString(s) {
+  const out = { coca_original:0, coca_zero:0, cotuba:0, outros:0 };
+  if (!s) return out;
+  // split por vírgula
+  const parts = String(s).split(',').map(p => p.trim()).filter(Boolean);
+  parts.forEach(part => {
+    // captura quantidade inicial (se existir)
+    const m = part.match(/^(\d+)\s+(.*)$/);
+    let qty = 1;
+    let name = part;
+    if (m) { qty = Number(m[1]); name = m[2].trim(); }
+    const n = name.toLowerCase();
+    if (n.includes('zero') && n.includes('coca')) {
+      out.coca_zero += qty;
+    } else if (n.includes('cotuba')) {
+      out.cotuba += qty;
+    } else if (n.includes('coca') || n.includes('cola')) {
+      // coca sem "zero" considera original
+      out.coca_original += qty;
+    } else {
+      // se não reconheceu, conta em outros
+      out.outros += qty;
+    }
+  });
+  return out;
+}
 
-      function updateProductionWidget() {
-        const dateStr = getTodayKey();
-        const prod = getProducedCounts(dateStr);
-        const sold = computeSoldCounts();
+// Soma quantos foram vendidos no dia (agora com contagem por tipo de refrigerante)
+function computeSoldCounts() {
+  const map = window.__pedidosMap || {};
+  // estrutura retornada: { frango, coxa, coca_original, coca_zero, cotuba, outros }
+  const sold = { frango:0, coxa:0, coca_original:0, coca_zero:0, cotuba:0, outros:0 };
+  Object.values(map).forEach(p => {
+    sold.frango += Number(p.qntd_frango || p.qtd_frango || 0) || 0;
+    sold.coxa  += Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0) || 0;
 
-        const elFrango = document.getElementById('pv-frango');
-        const elCoxa = document.getElementById('pv-coxa');
-        const elRefri = document.getElementById('pv-refri');
+    // tenta ler campos possíveis onde o tipo de refrigerante pode estar
+    const refStr = p.tipo_refrigerante || p.refrigerantes || p.refri || p.refrigerante || p['tipo_refri'] || '';
+    if (refStr) {
+      const parsed = parseTipoRefriString(refStr);
+      sold.coca_original += parsed.coca_original;
+      sold.coca_zero += parsed.coca_zero;
+      sold.cotuba += parsed.cotuba;
+      sold.outros += parsed.outros;
+    } else {
+      // fallback: se só tem qntd_refri numérico, soma em 'outros'
+      const q = Number(p.qntd_refri || p.qtd_refri || 0) || 0;
+      sold.outros += q;
+    }
+  });
+  return sold;
+}
 
-        if(!elFrango || !elCoxa || !elRefri) return;
+// Atualiza o widget de produção (agora mostra 3 contadores de refri)
+function updateProductionWidget() {
+  const dateStr = getTodayKey();
+  const prod = getProducedCounts(dateStr);
+  const sold = computeSoldCounts();
 
-        elFrango.textContent = `${sold.frango} / ${prod.frango}`;
-        elCoxa.textContent  = `${sold.coxa} / ${prod.coxa}`;
-        elRefri.textContent = `${sold.refri} / ${prod.refri}`;
+  const elFrango = document.getElementById('pv-frango');
+  const elCoxa = document.getElementById('pv-coxa');
+  const elCocaOrig = document.getElementById('pv-coca-original');
+  const elCocaZero = document.getElementById('pv-coca-zero');
+  const elCotuba = document.getElementById('pv-cotuba');
 
-        // aplicar alerta (vermelho) quando vendidos >= produzidos (e produzidos > 0)
-        elFrango.classList.toggle('alert', (prod.frango>0 && sold.frango >= prod.frango));
-        elCoxa.classList.toggle('alert',  (prod.coxa>0  && sold.coxa  >= prod.coxa));
-        elRefri.classList.toggle('alert', (prod.refri>0 && sold.refri >= prod.refri));
-      }
+  if(!elFrango || !elCoxa || !elCocaOrig || !elCocaZero || !elCotuba) return;
 
-      /* UI handlers */
-      (function productionWidgetSetup(){
-        const toggle = document.getElementById('production-toggle');
-        const panel = document.getElementById('production-panel');
-        const editArea = document.getElementById('produzidos-edit');
+  elFrango.textContent = `${sold.frango} / ${prod.frango}`;
+  elCoxa.textContent  = `${sold.coxa} / ${prod.coxa}`;
+  elCocaOrig.textContent = `${sold.coca_original} / ${prod.coca_original}`;
+  elCocaZero.textContent = `${sold.coca_zero} / ${prod.coca_zero}`;
+  elCotuba.textContent = `${sold.cotuba} / ${prod.cotuba}`;
 
-        if(!toggle || !panel) return;
+  // aplicar alerta (vermelho) quando vendidos >= produzidos (e produzidos > 0)
+  elFrango.classList.toggle('alert', (prod.frango>0 && sold.frango >= prod.frango));
+  elCoxa.classList.toggle('alert',  (prod.coxa>0  && sold.coxa  >= prod.coxa));
+  elCocaOrig.classList.toggle('alert', (prod.coca_original>0 && sold.coca_original >= prod.coca_original));
+  elCocaZero.classList.toggle('alert', (prod.coca_zero>0 && sold.coca_zero >= prod.coca_zero));
+  elCotuba.classList.toggle('alert', (prod.cotuba>0 && sold.cotuba >= prod.cotuba));
+}
 
-        toggle.addEventListener('click', () => {
-          panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-          // sempre atualizar quando abrir
-          if (panel.style.display === 'block') {
-            updateProductionWidget();
-          }
-        });
+// Setup do widget (popula inputs e salva) — substitui o bloco correspondente dentro de productionWidgetSetup()
+(function productionWidgetSetup(){
+  const toggle = document.getElementById('production-toggle');
+  const panel = document.getElementById('production-panel');
+  const editArea = document.getElementById('produzidos-edit');
 
-        document.getElementById('btn-close-productions').addEventListener('click', () => {
-          panel.style.display = 'none';
-        });
+  if(!toggle || !panel) return;
 
-        document.getElementById('btn-edit-produzidos').addEventListener('click', () => {
-          const d = getTodayKey();
-          const p = getProducedCounts(d);
-          document.getElementById('inp-prod-frango').value = p.frango || 0;
-          document.getElementById('inp-prod-coxa').value  = p.coxa  || 0;
-          document.getElementById('inp-prod-refri').value = p.refri || 0;
-          editArea.style.display = 'block';
-        });
+  toggle.addEventListener('click', () => {
+    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+    if (panel.style.display === 'block') {
+      updateProductionWidget();
+    }
+  });
 
-        document.getElementById('btn-cancel-produzidos').addEventListener('click', () => {
-          editArea.style.display = 'none';
-        });
+  document.getElementById('btn-close-productions').addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
 
-        document.getElementById('btn-save-produzidos').addEventListener('click', () => {
-          const fr = parseInt(document.getElementById('inp-prod-frango').value) || 0;
-          const cx = parseInt(document.getElementById('inp-prod-coxa').value)  || 0;
-          const rf = parseInt(document.getElementById('inp-prod-refri').value) || 0;
-          setProducedCounts(getTodayKey(), { frango: fr, coxa: cx, refri: rf });
-          editArea.style.display = 'none';
-          updateProductionWidget();
-        });
+  document.getElementById('btn-edit-produzidos').addEventListener('click', () => {
+    const d = getTodayKey();
+    const p = getProducedCounts(d);
+    document.getElementById('inp-prod-frango').value = p.frango || 0;
+    document.getElementById('inp-prod-coxa').value  = p.coxa  || 0;
+    // novos campos:
+    document.getElementById('inp-prod-coca-original').value = p.coca_original || 0;
+    document.getElementById('inp-prod-coca-zero').value = p.coca_zero || 0;
+    document.getElementById('inp-prod-cotuba').value = p.cotuba || 0;
 
-        // document.getElementById('btn-reset-produzidos').addEventListener('click', () => {
-        //   sessionStorage.removeItem(storageKeyFor(getTodayKey()));
-        //   updateProductionWidget();
-        // });
+    editArea.style.display = 'block';
+  });
 
-        // mostrar painel ao passar o mouse (opcional)
-        toggle.addEventListener('mouseenter', () => {
-          panel.style.display = 'block';
-          updateProductionWidget();
-        });
-        // e esconder ao sair (não obrigatório — o click ainda controla)
-        toggle.addEventListener('mouseleave', () => {
-          // opcional: não esconder para evitar fechar enquanto interage
-          // panel.style.display = 'none';
-        });
-      })();
+  document.getElementById('btn-cancel-produzidos').addEventListener('click', () => {
+    editArea.style.display = 'none';
+  });
 
-      })();
+  document.getElementById('btn-save-produzidos').addEventListener('click', () => {
+    const fr = parseInt(document.getElementById('inp-prod-frango').value) || 0;
+    const cx = parseInt(document.getElementById('inp-prod-coxa').value)  || 0;
+    const co = parseInt(document.getElementById('inp-prod-coca-original').value) || 0;
+    const cz = parseInt(document.getElementById('inp-prod-coca-zero').value) || 0;
+    const ct = parseInt(document.getElementById('inp-prod-cotuba').value) || 0;
+    setProducedCounts(getTodayKey(), { frango: fr, coxa: cx, coca_original: co, coca_zero: cz, cotuba: ct });
+    editArea.style.display = 'none';
+    updateProductionWidget();
+  });
+
+  // mostrar painel ao passar o mouse (opcional)
+  toggle.addEventListener('mouseenter', () => {
+    panel.style.display = 'block';
+    updateProductionWidget();
+  });
+  toggle.addEventListener('mouseleave', () => {
+    // opcional
+  });
+})();
+})();
+
 
       document.getElementById("input-endereco").addEventListener("blur", async () => {
         const rua = document.getElementById("input-endereco").value.trim();

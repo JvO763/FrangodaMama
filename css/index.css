@@ -660,3 +660,26 @@ select:focus {
 #production-panel input[type="number"] { width:90px; padding:6px; border-radius:6px; border: none; }
 #production-panel .small-btn { background:#fff; color:#111; padding:6px 50px; border-radius:6px; cursor:pointer; font-size:13px; }
 #production-panel .link-text { background:transparent; color:#87ceff; border:none; cursor:pointer; font-size:13px; padding:0; }
+
+.chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.chip {
+    background: #e3f2fd;
+    padding: 6px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.chip .close-chip {
+    margin-left: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #d32f2f;
+}
