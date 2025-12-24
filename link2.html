@@ -576,6 +576,7 @@ function exibirGrupos(grupos) {
       const qtdRefri = toNumber(p.qntd_refri ?? p.qtd_refri ?? 0);
       const qtdArroz = toNumber(p.qntd_arroz ?? p.qtd_arroz ?? 0);
       const tipoRefri = p.tipo_refrigerante ?? p.tipo_refri ?? p.tipoRefri ?? '';
+      const acompanhamentos = p.acompanhamentos || '';
       const preco = toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0);
       const pago = isTrue(p.pago);
       const row = p._sheetRow || '';
@@ -584,13 +585,14 @@ function exibirGrupos(grupos) {
         <div class="pedido-card" data-row="${row}" style="margin-bottom:8px; padding:10px; background: rgba(255,255,255,0.12); border-radius:8px; cursor:grab;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="font-weight:600;">${nome}</div>
-            <div style="font-size:0.9rem;">R$ ${fmt(preco)}</div>
+            <div style="font-size:0.9rem;">   R$ ${fmt(preco)} <br><strong> Horário: </strong> ${horario}</div>
           </div>
           <div style="font-size:0.9rem; margin-top:6px;">
             <div><strong>Endereço:</strong> ${endereco}</div>
-            <div><strong>CEP:</strong> ${cep} &nbsp;•&nbsp; <strong>Horário:</strong> ${horario}</div>
-            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} ${qtdRefri ? `• Refri ${qtdRefri}` : ''}</div>
-            ${tipoRefri ? `<div><strong>Tipo refri:</strong> ${tipoRefri}</div>` : ''}
+            <div><strong>CEP:</strong> ${cep} &nbsp;</div>
+            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} </div>
+            ${acompanhamentos ? `<div><strong>Acompanhamentos:</strong> ${acompanhamentos}</div>` : ''}
+            ${tipoRefri ? `<div><strong>Refrigerantes:</strong> ${tipoRefri}</div>` : ''}
             ${p.observacoes ? `<div style="margin-top:6px;"><strong>Obs:</strong> ${p.observacoes}</div>` : ''}
             <div style="margin-top:6px;"><strong>Pago:</strong> ${pago ? 'Sim' : 'Não'}</div>
           </div>

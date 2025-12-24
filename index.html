@@ -162,18 +162,37 @@
                       </div>
                     </li>
 
-
-                    <!-- Arroz -->
+                    <!-- Acompanhamentos com chips -->
                     <li class="item-content item-input">
                       <div class="item-inner">
-                        <div class="item-title item-label">
-                          <label><input type="checkbox" id="chk-arroz"> Arroz (R$10,00)</label>
-                        </div>
+                        <div class="item-title item-label">Acompanhamentos</div>
                         <div class="item-input-wrap">
-                          <input type="number" id="qtd-arroz" min="0" value="0" disabled />
+
+                          <!-- chips -->
+                          <div id="acomp-chips" class="chips-container"></div>
+
+                          <!-- input hidden (OBRIGATÓRIO) -->
+                          <input
+                            type="hidden"
+                            id="input-acompanhamentos"
+                            name="acompanhamentos"
+                            value=""
+                          >
+
+                          <button
+                            type="button"
+                            id="btn-acomp-sugestoes"
+                            class="button button-outline"
+                            style="margin-top:8px;"
+                          >
+                            Adicionar Acompanhamento
+                          </button>
+
                         </div>
                       </div>
                     </li>
+
+
 
                     <!-- Acréscimo / Desconto (valor em R$) -->
                     <li class="item-content item-input">
@@ -181,11 +200,11 @@
                         <div class="item-title item-label">Acréscimo / Desconto (R$)</div>
                         <div class="item-input-wrap">
                           <!-- usar type="text" + inputmode para permitir '-' e decimal (vírgula ou ponto) -->
-<input
-  type="text"
-  id="input-acrescimo"
-  placeholder="Ex: 5.00 ou -2.50"
-/>
+                            <input
+                              type="text"
+                              id="input-acrescimo"
+                              placeholder="Ex: 5.00 ou -2.50"
+                            />
 
                         </div>
                       </div>
@@ -456,7 +475,7 @@ function realizarLogin() {
   var senha = document.getElementById("login-password").value;
 
   // Substitua pela URL do seu Apps Script
-  var url = "https://script.google.com/macros/s/AKfycbzdccyCchpfVg4xbDPfNgZ82Fcq_sKGUP8Qaeh7U7Pib9ZA1LzBEV_TwjKmgBI8mjOZvQ/exec";
+  var url = "https://script.google.com/macros/s/AKfycby9TeyCIJOq-f3BcGCzraAgObA5rtrhCOxcHvYQ4A7Vo5e5T7nDsVCzSlzWp9SeXo0ifg/exec";
 
   showLoading('Entrando...');
   fetch(url + `?action=login&usuario=${encodeURIComponent(usuario)}&senha=${encodeURIComponent(senha)}`)
@@ -477,21 +496,97 @@ function realizarLogin() {
     });
 }
 
+// 🔹 GLOBAL (obrigatório)
+window.acompanhamentosSelecionados = [];
+
       (function(){
         // --- CONFIGURE AQUI a URL do seu Apps Script (cole sua URL publicada) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdccyCchpfVg4xbDPfNgZ82Fcq_sKGUP8Qaeh7U7Pib9ZA1LzBEV_TwjKmgBI8mjOZvQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9TeyCIJOq-f3BcGCzraAgObA5rtrhCOxcHvYQ4A7Vo5e5T7nDsVCzSlzWp9SeXo0ifg/exec";
         // --------------------------------------------------------------------
 
         const PRECO_FRANGO_ASSADO = 49.90;
         const PRECO_COXA_SOBRECOXA = 9.90;
         const PRECO_REFRIGERANTE = 10.00;
-        const PRECO_ARROZ = 10.00; // novo
 
         const $$ = Dom7; // Framework7 Dom7
 
         // ====== Início: código para chips de refrigerante ======
 const refriOpcoes = ["coca-cola original", "coca-cola zero", "cotuba"];
-let refriSelecionados = []; // array com strings (cada item representa 1 unidade escolhida)
+let refriSelecionados = []; // array com strings (cada item representa 1 unidade escolhida
+
+const ACOMPANHAMENTOS = {
+  arroz: { nome: 'Arroz', preco: 10 },
+  maionese: { nome: 'Maionese', preco: 20 },
+  mandioca: { nome: 'Mandioca', preco: 15 }
+};
+
+window.atualizarChipsAcompanhamentos = function () {
+  const container = document.getElementById('acomp-chips');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  window.acompanhamentosSelecionados.forEach((item, index) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip chip-outline';
+
+    chip.innerHTML = `
+      <div class="chip-label">
+        ${item.nome} (R$ ${item.preco.toFixed(2).replace('.', ',')})
+      </div>
+      <a class="chip-delete"></a>
+    `;
+
+    chip.querySelector('.chip-delete').onclick = () => {
+      window.acompanhamentosSelecionados.splice(index, 1);
+      window.atualizarChipsAcompanhamentos();
+      atualizarPrecoTotal();
+    };
+
+    container.appendChild(chip);
+  });
+
+  $$('#input-acompanhamentos').val(
+    window.acompanhamentosSelecionados.map(a => a.nome).join(', ')
+  );
+};
+
+
+function addAcompanhamento(key) {
+  const acomp = ACOMPANHAMENTOS[key];
+  if (!acomp) {
+    console.warn('Acompanhamento inválido:', key);
+    return;
+  }
+
+  window.acompanhamentosSelecionados.push({
+    nome: acomp.nome,
+    preco: acomp.preco
+  });
+
+  window.atualizarChipsAcompanhamentos();
+  atualizarPrecoTotal();
+}
+
+$$('#btn-acomp-sugestoes').on('click', function () {
+  const buttons = Object.keys(ACOMPANHAMENTOS).map(key => {
+    const a = ACOMPANHAMENTOS[key];
+    return {
+      text: `${a.nome} — R$ ${a.preco.toFixed(2).replace('.', ',')}`,
+      onClick: () => addAcompanhamento(key)
+    };
+  });
+
+  app.actions.create({
+    buttons: [
+      buttons,
+      [{ text: 'Cancelar', color: 'red' }]
+    ]
+  }).open();
+});
+
+
+
 
 // refs DOM (serão encontradas dentro do popup)
 const chipsContainer = document.getElementById('refri-chips');
@@ -667,13 +762,6 @@ if (hiddenInputRefri) {
         });
         $$('#qtd-frango, #qtd-coxa').on('input', atualizarPrecoTotal);
         $$('#input-refrigerantes').on('input', atualizarPrecoTotal);
-        // === Novo: arroz ===
-        $$('#chk-arroz').on('change', () => {
-          $$('#qtd-arroz').prop('disabled', !$$('#chk-arroz').prop('checked'));
-          atualizarPrecoTotal();
-        });
-        $$('#qtd-arroz').on('input', atualizarPrecoTotal);
-
         // === Novo: acrescimo/desconto ===
         $$('#input-acrescimo').on('input', atualizarPrecoTotal);
 
@@ -719,58 +807,47 @@ if (hiddenInputRefri) {
           return total;
         }
 
+        function calcularPrecoAcompanhamentos(lista) {
+          if (!Array.isArray(lista)) return 0;
 
-        // function atualizarPrecoTotal(){
-        //   const qtdFrango = parseInt($$('#qtd-frango').val()) || 0;
-        //   const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
-        //   const listaRefri = Array.isArray(refriSelecionados)
-        //     ? refriSelecionados
-        //     : [];
+          return lista.reduce((total, item) => {
+            const preco = Number(
+              String(item.preco || item.valor || 0).replace(',', '.')
+            );
+            return total + (isNaN(preco) ? 0 : preco);
+          }, 0);
+        }
 
-        //   const qtdArroz = $$('#chk-arroz').prop('checked') ? (parseInt($$('#qtd-arroz').val()) || 0) : 0;
-        //   let acrescimo = $$('#input-acrescimo').val().trim();
-
-        //   // permitir números com vírgula ou ponto
-        //   acrescimo = acrescimo.replace(',', '.');
-
-        //   // prevenir NaN
-        //   acrescimo = parseFloat(acrescimo);
-        //   if (isNaN(acrescimo)) acrescimo = 0;
-
-
-        //   const subtotal = (qtdFrango * PRECO_FRANGO_ASSADO) +
-        //                   (qtdCoxa * PRECO_COXA_SOBRECOXA) +
-        //                   calcularPrecoRefrigerantesLista(listaRefri) +
-        //                   (qtdArroz * PRECO_ARROZ);
-
-        //   const total = subtotal + acrescimo;
-        //   $$('#input-preco-total').val(total.toFixed(2));
-        // }
 
         function atualizarPrecoTotal() {
           const qtdFrango = parseInt($$('#qtd-frango').val()) || 0;
           const qtdCoxa = parseInt($$('#qtd-coxa').val()) || 0;
-          const qtdArroz = $$('#chk-arroz').prop('checked')
-            ? (parseInt($$('#qtd-arroz').val()) || 0)
-            : 0;
 
+          // 🔹 Acrescimo/desconto (continua igual)
           let acrescimo = $$('#input-acrescimo').val().trim();
           acrescimo = acrescimo.replace(',', '.');
           acrescimo = parseFloat(acrescimo);
           if (isNaN(acrescimo)) acrescimo = 0;
 
-          // ✅ FONTE ÚNICA
+          // ✅ FONTE ÚNICA – refrigerantes
           const listaRefri = Array.isArray(refriSelecionados)
             ? refriSelecionados
+            : [];
+
+          // ✅ FONTE ÚNICA – acompanhamentos
+          const listaAcompanhamentos = Array.isArray(window.acompanhamentosSelecionados)
+            ? window.acompanhamentosSelecionados
             : [];
 
           const subtotal =
             (qtdFrango * PRECO_FRANGO_ASSADO) +
             (qtdCoxa * PRECO_COXA_SOBRECOXA) +
             calcularPrecoRefrigerantesLista(listaRefri) +
-            (qtdArroz * PRECO_ARROZ);
+            calcularPrecoAcompanhamentos(listaAcompanhamentos);
 
           const total = subtotal + acrescimo;
+
+          // mantém padrão decimal brasileiro visualmente se quiser
           $$('#input-preco-total').val(total.toFixed(2));
         }
 
@@ -810,7 +887,9 @@ if (hiddenInputRefri) {
 
           const qtdFrango = $$('#chk-frango').prop('checked') ? parseInt($$('#qtd-frango').val()) || 0 : 0;
           const qtdCoxa  = $$('#chk-coxa').prop('checked') ? parseInt($$('#qtd-coxa').val()) || 0 : 0;
-          const qtdArroz = $$('#chk-arroz').prop('checked') ? parseInt($$('#qtd-arroz').val()) || 0 : 0;
+          const acompanhamentosText = window.acompanhamentosSelecionados
+            .map(a => a.nome)
+            .join(', ');
           const listaRefri = refrigerantesText
           ? refrigerantesText.split(',').map(s => s.trim()).filter(s => s.length > 0)
           : [];
@@ -822,48 +901,48 @@ if (hiddenInputRefri) {
           const observacoes = $$('#input-obs').val().trim();
 
           // --- Verificação de estoque: impede vender mais do que produzido disponível ---
-// obtém produzidos para hoje
-const produced = getProducedCounts(getTodayKey()); // { frango, coxa, refri }
-const sold = computeSoldCounts(); // soma dos pedidos já presentes em window.__pedidosMap
+          // obtém produzidos para hoje
+          const produced = getProducedCounts(getTodayKey()); // { frango, coxa, refri }
+          const sold = computeSoldCounts(); // soma dos pedidos já presentes em window.__pedidosMap
 
-// se estamos editando um pedido, subtrai a quantidade atual do pedido que está sendo editado
-let origFrango = 0, origCoxa = 0;
-if (window.__editingRow && window.__pedidosMap && window.__pedidosMap[window.__editingRow]) {
-  const orig = window.__pedidosMap[window.__editingRow];
-  origFrango = Number(orig.qntd_frango || orig.qtd_frango || 0);
-  origCoxa  = Number(orig.qntd_sobrecoxa || orig.qtd_sobrecoxa || 0);
-}
+          // se estamos editando um pedido, subtrai a quantidade atual do pedido que está sendo editado
+          let origFrango = 0, origCoxa = 0;
+          if (window.__editingRow && window.__pedidosMap && window.__pedidosMap[window.__editingRow]) {
+            const orig = window.__pedidosMap[window.__editingRow];
+            origFrango = Number(orig.qntd_frango || orig.qtd_frango || 0);
+            origCoxa  = Number(orig.qntd_sobrecoxa || orig.qtd_sobrecoxa || 0);
+          }
 
-// dispo = produzido - (vendido - originalDoPedidoEditado)
-const availableFrango = (Number(produced.frango || 0) > 0)
-  ? Math.max(Number(produced.frango || 0) - (sold.frango - origFrango), 0)
-  : Infinity; // se não produziu (0), consideramos ilimitado
+          // dispo = produzido - (vendido - originalDoPedidoEditado)
+          const availableFrango = (Number(produced.frango || 0) > 0)
+            ? Math.max(Number(produced.frango || 0) - (sold.frango - origFrango), 0)
+            : Infinity; // se não produziu (0), consideramos ilimitado
 
-const availableCoxa = (Number(produced.coxa || 0) > 0)
-  ? Math.max(Number(produced.coxa || 0) - (sold.coxa - origCoxa), 0)
-  : Infinity;
+          const availableCoxa = (Number(produced.coxa || 0) > 0)
+            ? Math.max(Number(produced.coxa || 0) - (sold.coxa - origCoxa), 0)
+            : Infinity;
 
-// Checa frango
-if (Number(qtdFrango || 0) > availableFrango) {
-  if (availableFrango === Infinity) {
-    // se infinito, passa (não deveria ocorrer); caso queira bloquear sempre, remova Infinity lógica
-  } else {
-    app.dialog.alert(`Não há frangos suficientes disponíveis. Disponível: ${availableFrango}.`);
-    hideLoading();
-    return;
-  }
-}
+          // Checa frango
+          if (Number(qtdFrango || 0) > availableFrango) {
+            if (availableFrango === Infinity) {
+              // se infinito, passa (não deveria ocorrer); caso queira bloquear sempre, remova Infinity lógica
+            } else {
+              app.dialog.alert(`Não há frangos suficientes disponíveis. Disponível: ${availableFrango}.`);
+              hideLoading();
+              return;
+            }
+          }
 
-// Checa coxa
-if (Number(qtdCoxa || 0) > availableCoxa) {
-  if (availableCoxa === Infinity) {
-    // idem
-  } else {
-    app.dialog.alert(`Não há coxas suficientes disponíveis. Disponível: ${availableCoxa}.`);
-    hideLoading();
-    return;
-  }
-}
+          // Checa coxa
+          if (Number(qtdCoxa || 0) > availableCoxa) {
+            if (availableCoxa === Infinity) {
+              // idem
+            } else {
+              app.dialog.alert(`Não há coxas suficientes disponíveis. Disponível: ${availableCoxa}.`);
+              hideLoading();
+              return;
+            }
+          }
 
 
           if (!nome || !endereco || !datetimeLocal) {
@@ -881,12 +960,12 @@ if (Number(qtdCoxa || 0) > availableCoxa) {
             qntd_frango: qtdFrango,
             qntd_sobrecoxa: qtdCoxa,
             qntd_refri: listaRefri.length,
-            qntd_arroz: qtdArroz,
             nome_cliente: nome,
             endereco,
             numero,
             cep,
             tipo_refrigerante: refrigerantesText,
+            acompanhamentos: acompanhamentosText,   // 🔥 ESSENCIAL
             observacoes,
             acrescimo,
             preco_total: precoTotal
@@ -962,7 +1041,6 @@ body.tipoRefrigerante = refrigerantesFormatados;
           // (resto do código de limpeza permanece idêntico)
           $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
             $$('#chk-coxa').prop('checked', false); $$('#qtd-coxa').val(0).prop('disabled', true);
-            $$('#chk-arroz').prop('checked', false); $$('#qtd-arroz').val(0).prop('disabled', true);
             $$('#input-refrigerantes').val('');
             $$('#input-nome-cliente').val('');
             $$('#input-endereco').val('');
@@ -1030,6 +1108,15 @@ try {
           }
         }
 
+        function parseListaTexto(valor) {
+          if (!valor) return [];
+          return String(valor)
+            .split(',')
+            .map(v => v.trim())
+            .filter(Boolean);
+        }
+
+
         async function carregarPedidosDoDia(showOnlyNotDelivered = false) {
           showLoading('Carregando pedidos...');
           try {
@@ -1073,6 +1160,8 @@ try {
 
             // monta cards — importantíssimo: usar p._sheetRow (linha da planilha) para data-row
             pedidosParaMostrar.forEach((p, i) => {
+              console.log('PEDIDO COMPLETO:', p);
+
               const sheetRow = p._sheetRow || (i + 2); // fallback se não existir _sheetRow
               // guarda objeto para edição posterior
               window.__pedidosMap[sheetRow] = p;
@@ -1083,9 +1172,27 @@ try {
               const preco = parseFloat(p.preco_total || p.precoTotal || p.preco || 0).toFixed(2);
 
               const items = [];
-              if (qtdFrango) items.push(`Frango: ${qtdFrango}`);
-              if (qtdCoxa) items.push(`Coxa: ${qtdCoxa}`);
-              if (qtdRefri) items.push(`Refri: ${qtdRefri}`);
+
+              // 🍗 Frango inteiro
+              if (qtdFrango) {
+                items.push(`Frango: ${qtdFrango}`);
+              }
+
+              // 🍗 Coxa / sobrecoxa
+              if (qtdCoxa) {
+                items.push(`Coxa: ${qtdCoxa}`);
+              }
+
+              // 🥤 Refrigerantes (MOSTRA QUAIS)
+              if (p.tipo_refri) {
+                items.push(`Refri: ${p.tipo_refri}`);
+              }
+
+              // 🍚 Acompanhamentos
+              if (p.acompanhamentos) {
+                items.push(`Acomp: ${p.acompanhamentos}`);
+              }
+
 
               const horaAjustada = p.horario_entrega || '';
 
@@ -1233,7 +1340,6 @@ $$(document).on('click', '.btn-delete', async function (evt) {
               // quantidades e checkboxes
               const qtdFrango = Number(pedido.qntd_frango || pedido.qtd_frango || 0);
               const qtdCoxa   = Number(pedido.qntd_sobrecoxa || pedido.qtd_sobrecoxa || 0);
-              const qtdArroz  = Number(pedido.qntd_arroz || pedido.qtd_arroz || 0);
               
               
               $$('#chk-frango').prop('checked', qtdFrango > 0);
@@ -1241,13 +1347,9 @@ $$(document).on('click', '.btn-delete', async function (evt) {
 
               $$('#chk-coxa').prop('checked', qtdCoxa > 0);
               $$('#qtd-coxa').val(qtdCoxa).prop('disabled', !(qtdCoxa > 0));
-
-              $$('#chk-arroz').prop('checked', qtdArroz > 0);
-              $$('#qtd-arroz').val(qtdArroz).prop('disabled', !(qtdArroz > 0));
-
               // --- Preencher Refrigerantes (robusto) ---
               // --- Preencher Refrigerantes (robusto: parseia "2 Cotuba") ---
-(function fillRefrigerantes() {
+              (function fillRefrigerantes() {
 
   function parseRefrigerantesBR(texto) {
     if (!texto) return [];
@@ -1368,7 +1470,38 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                 }
               })();
 
+              (function fillAcompanhamento() {
+                const valor =
+                  pedido.acompanhamento ||
+                  pedido.acompanhamentos ||
+                  pedido.acomp ||
+                  '';
 
+                window.acompanhamentosSelecionados.length = 0; // limpa mantendo referência
+
+                if (!valor) {
+                  window.atualizarChipsAcompanhamentos();
+                  return;
+                }
+
+                valor
+                  .split(',')
+                  .map(v => v.trim().toLowerCase())
+                  .filter(Boolean)
+                  .forEach(nome => {
+                    const acomp = ACOMPANHAMENTOS[nome];
+                    if (acomp) {
+                      window.acompanhamentosSelecionados.push({
+                        nome: acomp.nome,
+                        preco: acomp.preco
+                      });
+                    }
+                  });
+
+                window.atualizarChipsAcompanhamentos();
+              })();
+
+              
               $$('#input-obs').val(pedido.observacoes || '');
 
               // recalcula preço só visualmente
@@ -1669,12 +1802,16 @@ function updateProductionWidget() {
     });
 
 
+function limparFormularioPedido() {
+  // limpa acompanhamentos
+  window.acompanhamentosSelecionados.length = 0;
+  window.atualizarChipsAcompanhamentos();
+  $$('#input-acompanhamentos').val('');
 
-    function limparFormularioPedido() {
-  // Campos simples
+  // campos simples
   $$('#input-nome-cliente').val('');
   $$('#input-refrigerantes').val('');
-  $$('#input-acrescimo').val('');
+  $$('#input-acrescimo').val('0,00');
   $$('#input-obs').val('');
   $$('#input-endereco').val('');
   $$('#input-numero').val('');
@@ -1682,25 +1819,18 @@ function updateProductionWidget() {
   $$('#input-horario-entrega').val('');
   $$('#input-preco-total').val('');
 
-  // Sempre deixa cidade e UF padrão
-  $$('#input-cidade').val('Ribeirão Preto');
-  $$('#input-uf').val('SP');
-
-  // Checkboxes e quantidades
-  const campos = [
-    { chk: '#chk-frango', qtd: '#qtd-frango' },
-    { chk: '#chk-coxa', qtd: '#qtd-coxa' },
-    { chk: '#chk-arroz', qtd: '#qtd-arroz' },
-  ];
-
-  campos.forEach(c => {
-    $$(c.chk).prop('checked', false);
-    $$(c.qtd).val('0');
-    $$(c.qtd).prop('disabled', true);
+  // checkboxes
+  [
+    ['#chk-frango', '#qtd-frango'],
+    ['#chk-coxa', '#qtd-coxa'],
+    ['#chk-arroz', '#qtd-arroz'],
+  ].forEach(([chk, qtd]) => {
+    $$(chk).prop('checked', false);
+    $$(qtd).val(0).prop('disabled', true);
   });
 }
 
-
+    
 // Sempre que qualquer popup for fechado, limpa os campos
 $$(document).on('popup:closed', '#popup-add-pedido', function () {
   limparFormularioPedido();
