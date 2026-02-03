@@ -575,6 +575,9 @@ function exibirGrupos(grupos) {
       const qtdCoxa = toNumber(p.qntd_sobrecoxa ?? p.qtd_sobrecoxa ?? 0);
       const qtdRefri = toNumber(p.qntd_refri ?? p.qtd_refri ?? 0);
       const qtdArroz = toNumber(p.qntd_arroz ?? p.qtd_arroz ?? 0);
+      const qtdMandioca = toNumber(p.qntd_mandioca ?? p.qtd_mandioca ?? 0);
+      const qtdMaionese = toNumber(p.qntd_maionese ?? p.qtd_maionese ?? 0);
+      const qtdFarofa = toNumber(p.qntd_farofa ?? p.qtd_farofa ?? 0);
       const tipoRefri = p.tipo_refrigerante ?? p.tipo_refri ?? p.tipoRefri ?? '';
       const acompanhamentos = p.acompanhamentos || '';
       const preco = toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0);
@@ -590,7 +593,7 @@ function exibirGrupos(grupos) {
           <div style="font-size:0.9rem; margin-top:6px;">
             <div><strong>Endereço:</strong> ${endereco}</div>
             <div><strong>CEP:</strong> ${cep} &nbsp;</div>
-            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} </div>
+            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} ${qtdMandioca ? `• Mandioca ${qtdMandioca}` : ''} ${qtdMaionese ? `• Maionese ${qtdMaionese}` : ''} ${qtdFarofa ? `• Farofa ${qtdFarofa}` : ''}</div>
             ${acompanhamentos ? `<div><strong>Acompanhamentos:</strong> ${acompanhamentos}</div>` : ''}
             ${tipoRefri ? `<div><strong>Refrigerantes:</strong> ${tipoRefri}</div>` : ''}
             ${p.observacoes ? `<div style="margin-top:6px;"><strong>Obs:</strong> ${p.observacoes}</div>` : ''}

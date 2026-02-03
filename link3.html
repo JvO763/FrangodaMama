@@ -342,6 +342,9 @@ async function fetchPedidosRange(start, end){
           const qCoxa   = Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0);
           const qRefri  = Number(p.qntd_refri || p.qtd_refri || 0);
           const qArroz  = Number(p.qntd_arroz || p.qtd_arroz || 0);
+          const qMandioca = Number(p.qntd_mandioca || p.qtd_mandioca || 0);
+          const qMaionese = Number(p.qntd_maionese || p.qtd_maionese || 0);
+          const qFarofa   = Number(p.qntd_farofa || p.qtd_farofa || 0);
 
           const acrescimoRaw = (p.acrescimo !== undefined) ? p.acrescimo : (p['acrescimo/desconto'] !== undefined ? p['acrescimo/desconto'] : (p.acrescimo_desconto || 0));
           const acrescimoNum = Number(acrescimoRaw || 0);
@@ -366,6 +369,9 @@ async function fetchPedidosRange(start, end){
                     <div>🍗 Coxa-Sobrecoxa: <strong>${qCoxa}</strong></div>
                     <div>🥤 Refri: <strong>${qRefri}</strong></div>
                     <div>🍚 Arroz: <strong>${qArroz}</strong></div>
+                    <div>🥔 Mandioca: <strong>${qMandioca}</strong></div>
+                    <div>🥗 Maionese: <strong>${qMaionese}</strong></div>
+                    <div>🥣 Farofa: <strong>${qFarofa}</strong></div>
                     <div style="margin-top:6px;">Acrésc/Desc: <strong>${acrescimoStr}</strong></div>
                   </div>
                 </div>

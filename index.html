@@ -1688,16 +1688,16 @@ $$(document).on('click', '.btn-delete', async function (evt) {
   window.acompanhamentosSelecionados.length = 0;
 
   const nArroz = Number(pedido.qntd_arroz || pedido.acomp_arroz || pedido['qntd_arroz'] || 0) || 0;
-  const nMaio = Number(pedido.qntd_maionese || pedido.acomp_maionese || pedido['qntd_maionese'] || 0) || 0;
-  const nMand = Number(pedido.qntd_mandioca || pedido.acomp_mandioca || pedido['qntd_mandioca'] || 0) || 0;
+  const nMaionese = Number(pedido.qntd_maionese || pedido.acomp_maionese || pedido['qntd_maionese'] || 0) || 0;
+  const nMandioca = Number(pedido.qntd_mandioca || pedido.acomp_mandioca || pedido['qntd_mandioca'] || 0) || 0;
   const nFarofa = Number(pedido.qntd_farofa || pedido.acomp_farofa || pedido['qntd_farofa'] || 0) || 0;
   
 
-  if (nArroz + nMaio + nMand + nFarofa > 0) {
+  if (nArroz + nMaionese + nMandioca + nFarofa > 0) {
     // adicionar pelo número
     for (let i=0;i<nArroz;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.arroz.nome, preco: ACOMPANHAMENTOS.arroz.preco });
-    for (let i=0;i<nMaio;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.maionese.nome, preco: ACOMPANHAMENTOS.maionese.preco });
-    for (let i=0;i<nMand;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.mandioca.nome, preco: ACOMPANHAMENTOS.mandioca.preco });
+    for (let i=0;i<nMaionese;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.maionese.nome, preco: ACOMPANHAMENTOS.maionese.preco });
+    for (let i=0;i<nMandioca;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.mandioca.nome, preco: ACOMPANHAMENTOS.mandioca.preco });
     for (let i=0;i<nFarofa;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.farofa.nome, preco: ACOMPANHAMENTOS.farofa.preco });
     window.atualizarChipsAcompanhamentos();
     return;
