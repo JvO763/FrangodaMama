@@ -45,6 +45,10 @@
                         <div class="right">
                           <!-- botão filtro à direita -->
                           <a href="#" class="link icon-only" id="btn-open-filter" title="Filtros"><i class="ri-filter-3-line"></i></a>
+
+                          <a href="#" class="link icon-only" id="btn-print" title="Imprimir">
+                            <i class="ri-printer-line"></i>
+                          </a>
                         </div>
                     </div>
                 </div>
@@ -693,6 +697,17 @@ try {
       })();
 
     })();
+
+
+  // botão imprimir tela inteira
+  const btnPrint = document.getElementById('btn-print');
+  if (btnPrint) {
+    btnPrint.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.print();
+    });
+  }
+
     </script>
 
 </body>

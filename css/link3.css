@@ -706,6 +706,11 @@ select:focus {
   font-size: 26px; /* opcional */
 }
 
+#btn-print i {
+  color: var(--dourado);   /* ← coloque aqui a cor desejada */
+  font-size: 26px; /* opcional */
+}
+
 .card-summary-row { display:flex; gap:10px; align-items:center; }
 .card-summary { flex:1; padding:10px; border-radius:6px; background:#222; color:#fff; }
 .card-summary .label { font-weight:700; }
@@ -741,3 +746,34 @@ textarea#inp-obs {
   overflow: visible !important;
 }
 
+
+@media print {
+  /* força o body e containers a expandirem */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Framework7 costuma limitar a área visível */
+  .view,
+  .page,
+  .page-content {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* remove barras e layouts fixos */
+  .navbar,
+  .toolbar,
+  #filter-popup {
+    display: none !important;
+  }
+
+  /* evita quebra estranha de cards */
+  .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
