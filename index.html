@@ -1249,8 +1249,8 @@ body.tipoRefrigerante = refrigerantesFormatados;
           // fecha popup e limpa campos...
           app.popup.close('#popup-add-pedido');
           // (resto do código de limpeza permanece idêntico)
-          $$('#chk-frango').prop('checked', false); $$('#qtd-frango').val(0).prop('disabled', true);
-            $$('#chk-coxa').prop('checked', false); $$('#qtd-coxa').val(0).prop('disabled', true);
+            $$('#qtd-frango').val('');
+            $$('#qtd-coxa').val('');
             $$('#input-refrigerantes').val('');
             $$('#input-nome-cliente').val('');
             $$('#input-endereco').val('');
@@ -1258,7 +1258,7 @@ body.tipoRefrigerante = refrigerantesFormatados;
             $$('#input-cep').val('');
             $$('#input-horario-entrega').val('');
             $$('#input-preco-total').val('');
-            $$('#input-acrescimo').val('0.00');
+            $$('#input-acrescimo').val('');
             $$('#input-obs').val('');
           carregarPedidosDoDia();
           // --- notifica rotas sobre novo pedido (colocar logo após carregarPedidosDoDia(); ) ---
@@ -2132,22 +2132,15 @@ function limparFormularioPedido() {
   // campos simples
   $$('#input-nome-cliente').val('');
   $$('#input-refrigerantes').val('');
-  $$('#input-acrescimo').val('0,00');
+  $$('#input-acrescimo').val('');
   $$('#input-obs').val('');
   $$('#input-endereco').val('');
   $$('#input-numero').val('');
   $$('#input-cep').val('');
   $$('#input-horario-entrega').val('');
   $$('#input-preco-total').val('');
-
-  // // checkboxes
-  // [
-  //   ['#chk-frango', '#qtd-frango'],
-  //   ['#chk-coxa', '#qtd-coxa'],
-  // ].forEach(([chk, qtd]) => {
-  //   $$(chk).prop('checked', false);
-  //   $$(qtd).val(0).prop('disabled', true);
-  // });
+  $$('#qtd-frango').val('');
+  $$('#qtd-coxa').val('');
 }
 
     
