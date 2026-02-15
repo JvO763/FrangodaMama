@@ -791,11 +791,11 @@ if (hiddenInputRefri) {
 
         // habilitar/desabilitar quantidades quando checkbox mudar
         $$('#chk-frango').on('change', () => {
-          $$('#qtd-frango').prop('disabled', !$$('#chk-frango').prop('checked'));
+          $$('#qtd-frango').prop('enabled', !$$('#chk-frango').prop('checked'));
           atualizarPrecoTotal();
         });
         $$('#chk-coxa').on('change', () => {
-          $$('#qtd-coxa').prop('disabled', !$$('#chk-coxa').prop('checked'));
+          $$('#qtd-coxa').prop('enabled', !$$('#chk-coxa').prop('checked'));
           atualizarPrecoTotal();
         });
         $$('#qtd-frango, #qtd-coxa').on('input', atualizarPrecoTotal);
@@ -1556,10 +1556,10 @@ $$(document).on('click', '.btn-delete', async function (evt) {
               
               
               $$('#chk-frango').prop('checked', qtdFrango > 0);
-              $$('#qtd-frango').val(qtdFrango).prop('disabled', !(qtdFrango > 0));
+              $$('#qtd-frango').val(qtdFrango).prop('enabled', !(qtdFrango > 0));
 
               $$('#chk-coxa').prop('checked', qtdCoxa > 0);
-              $$('#qtd-coxa').val(qtdCoxa).prop('disabled', !(qtdCoxa > 0));
+              $$('#qtd-coxa').val(qtdCoxa).prop('enabled', !(qtdCoxa > 0));
               // --- Preencher Refrigerantes (robusto) ---
               // --- Preencher Refrigerantes (robusto: parseia "2 Cotuba") ---
               (function fillRefrigerantes() {
