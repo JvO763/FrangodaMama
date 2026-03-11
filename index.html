@@ -144,16 +144,26 @@
                       <div class="item-inner">
                         <div class="item-title item-label">Refrigerantes</div>
                         <div class="item-input-wrap">
-                          <!-- área visual de chips -->
-                          <div id="refri-chips" class="chips-container" aria-live="polite"></div>
+                          <!-- chips -->
+<div id="refri-chips" class="chips-container"></div>
 
-                          <!-- mantém o input com o mesmo id para compatibilidade com o seu JS existente -->
-                          <input type="hidden" id="input-refrigerantes" name="tipo_refrigerante" value="">
+                          <!-- input hidden (OBRIGATÓRIO) -->
+                          <input
+                            type="hidden"
+                            id="input-refrigerantes"
+                            name="refrigerantes"
+                            value=""
+                          >
 
-                          <!-- botão para abrir sugestões (popup) -->
-                          <button type="button" id="btn-refri-sugestoes" class="button button-outline" style="margin-top:8px;">
+                          <button
+                            type="button"
+                            id="btn-refri-sugestoes"
+                            class="button button-outline"
+                            style="margin-top:8px;"
+                          >
                             Adicionar Refrigerante
                           </button>
+                          
                         </div>
                       </div>
                     </li>
@@ -685,66 +695,23 @@ function atualizarHiddenInput() {
 }
 
 // Abre um popup simples com as opções (usa Framework7 popup)
-if (btnSugestoes) {
-  btnSugestoes.addEventListener('click', () => {
-    const listHtml = refriOpcoes
-      .map(op => `
-        <li class="popup-refri-item" data-valor="${op}" 
-            style="padding: 12px; font-size: 17px; background: #ffffff; border-bottom: 1px solid #ccc; color: #333; cursor: pointer;">
-          ${op}
-        </li>
-      `)
-      .join('');
+$$('#btn-refri-sugestoes').on('click', function () {
 
-    const popupHtml = `
-      <div class="popup" id="popup-refri-sugestoes" style="background: #f5f5f5;">
-        <div class="view">
-          <div class="page">
-
-            <!-- NAVBAR -->
-            <div class="navbar" style="background: #ffffff; border-bottom: 1px solid #ccc;">
-              <div class="navbar-inner">
-
-                <div class="title" style="color: #333; font-weight: 600;">
-                  Escolher Refrigerante
-                </div>
-
-                <div class="right">
-                  <a href="#" class="link popup-close"
-                     style="font-size: 20px; font-weight: bold; color: red;">
-                    X
-                  </a>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- LISTA -->
-            <div class="page-content" style="background: #f5f5f5;">
-              <div class="list simple-list">
-                <ul>${listHtml}</ul>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    `;
-
-    const pop = app.popup.create({ content: popupHtml });
-    pop.open();
-
-    // EVENTO DE CLIQUE NAS OPÇÕES
-    document.querySelectorAll('#popup-refri-sugestoes .popup-refri-item').forEach(el => {
-      el.addEventListener('click', (e) => {
-        const val = e.currentTarget.dataset.valor;
-        addRefrigerante(val);
-        pop.close();
-      });
-    });
+  const buttons = refriOpcoes.map(op => {
+    return {
+      text: op,
+      onClick: () => addRefrigerante(op)
+    };
   });
-}
 
+  app.actions.create({
+    buttons: [
+      buttons,
+      [{ text: 'Cancelar', color: 'red' }]
+    ]
+  }).open();
+
+});
 // Se o hidden for preenchido (por edit), sincroniza chips com o value
 function syncChipsFromHidden() {
   const v = (hiddenInputRefri && hiddenInputRefri.value) ? String(hiddenInputRefri.value).trim() : '';
