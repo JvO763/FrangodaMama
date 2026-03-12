@@ -488,13 +488,13 @@
 
       // Esconde os cards ao sair da página index
       $$(document).on('page:beforeout', '.page[data-name="index"]', function () {
-        console.log('Saindo da index, ocultando cards');
+        //console.log('Saindo da index, ocultando cards');
         $$('#produtos').hide();
       });
 
       // Mostra os cards ao retornar para a página index
       $$(document).on('page:afterin', '.page[data-name="index"]', function () {
-        console.log('Voltando para index, mostrando cards');
+        //console.log('Voltando para index, mostrando cards');
         $$('#produtos').show();
       });
     </script>
@@ -1021,10 +1021,10 @@ const reqMandioca = Number(acompCount1.mandioca || 0);
 const reqFarofa   = Number(acompCount1.farofa || 0);
 
 // DEBUG detalhado (coloque no console para inspecionar)
-console.log('[STOCK CHECK] produced:', produced);
-console.log('[STOCK CHECK] sold:', sold);
-console.log('[STOCK CHECK] orig:', { origFrango, origCoxa, origCocaOriginal, origCocaZero, origCotuba, origArroz, origMaionese, origMandioca, origFarofa });
-console.log('[STOCK CHECK] requested:', { qtdFrango, qtdCoxa, reqCocaOriginal, reqCocaZero, reqCotuba, reqArroz, reqMaionese, reqMandioca, reqFarofa });
+//console.log('[STOCK CHECK] produced:', produced);
+//console.log('[STOCK CHECK] sold:', sold);
+//console.log('[STOCK CHECK] orig:', { origFrango, origCoxa, origCocaOriginal, origCocaZero, origCotuba, origArroz, origMaionese, origMandioca, origFarofa });
+//console.log('[STOCK CHECK] requested:', { qtdFrango, qtdCoxa, reqCocaOriginal, reqCocaZero, reqCotuba, reqArroz, reqMaionese, reqMandioca, reqFarofa });
 
 // disponibilidade (sua regra: se produzido>0 então limita, senão Infinity)
 function availableFor(keyProduced, soldVal, origVal){
@@ -1104,7 +1104,7 @@ if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosS
   if (inputFarofa) acompCount.farofa = parseInt(inputFarofa.value) || 0;
 }
 
-console.log('🧪 Acompanhamentos selecionados (contador):', acompCount);
+//console.log('🧪 Acompanhamentos selecionados (contador):', acompCount);
 
 // formato legível para planilha: "2 Arroz, 1 Mandioca, 3 Farofa, 4 Maionese" (apenas se quiser enviar)
 function formatarAcompanhamentosCounts(counts){
@@ -1143,7 +1143,7 @@ const body = {
   acrescimo,
   preco_total: precoTotal
 };
-console.log('🧪 acompanhamentosText (formatado):', acompanhamentosTextFormatted);
+//console.log('🧪 acompanhamentosText (formatado):', acompanhamentosTextFormatted);
 
 
 
@@ -1166,7 +1166,7 @@ body.tipoRefrigerante = refrigerantesFormatados;
             body.action = 'updateOrder';
             body.row = window.__editingRow;
             // DEBUG: inspeciona o body antes do envio (coloque aqui para testar)
-            console.log('[DEBUG] body antes de updateOrder:', body);
+            //console.log('[DEBUG] body antes de updateOrder:', body);
 
 
             const form = new URLSearchParams();
@@ -1208,7 +1208,7 @@ body.tipoRefrigerante = refrigerantesFormatados;
             // tenta ler resposta
             let json = null;
             try { json = await res.json(); } catch (e) { json = null; }
-            console.log('Resposta do script (add):', json || res);
+            //console.log('Resposta do script (add):', json || res);
             hideLoading();
             app.dialog.alert('Pedido adicionado com sucesso!');
           }
@@ -1234,12 +1234,12 @@ try {
   window.dispatchEvent(new CustomEvent('pedido:adicionado', { detail: { when: Date.now() } }));
   // se a função carregarPedidos (da página link2) estiver disponível no mesmo contexto, chama direto
   if (typeof window.carregarPedidos === 'function') {
-    console.log('[index] notifica rotas: chamando window.carregarPedidos() diretamente');
+    //console.log('[index] notifica rotas: chamando window.carregarPedidos() diretamente');
     try { window.carregarPedidos(); } catch(e) { console.warn('[index] erro ao chamar carregarPedidos():', e); }
   } else {
     // fallback: marca um flag em sessionStorage para que a página de rotas saiba que precisa recarregar quando for ativada
     sessionStorage.setItem('rotas:refresh_at', String(Date.now()));
-    console.log('[index] notifica rotas: flag rotas:refresh_at setada');
+    //console.log('[index] notifica rotas: flag rotas:refresh_at setada');
   }
 } catch (err) {
   console.warn('[index] erro ao notificar rotas sobre novo pedido:', err);
@@ -1305,7 +1305,7 @@ try {
             const localISODate = new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
             const dateStr = localISODate;
             const res = await fetch(`${SCRIPT_URL}?date=${dateStr}`);
-            console.log('URL acessada:', dateStr);
+            //console.log('URL acessada:', dateStr);
             const data = await res.json();
             const pedidos = (data.pedidos || []);
 
@@ -1338,7 +1338,7 @@ try {
 
             // monta cards — importantíssimo: usar p._sheetRow (linha da planilha) para data-row
             pedidosParaMostrar.forEach((p, i) => {
-              console.log('PEDIDO COMPLETO:', p);
+              //console.log('PEDIDO COMPLETO:', p);
 
               const sheetRow = p._sheetRow || (i + 2); // fallback se não existir _sheetRow
               // guarda objeto para edição posterior
@@ -1419,7 +1419,7 @@ try {
               const campo = $el.hasClass('chk-entregue') ? 'entregue' : 'pago';
               const valor = $el.prop('checked');
 
-              console.log(`Tentando atualizar linha ${row}, campo ${campo}, valor ${valor}`);
+              //console.log(`Tentando atualizar linha ${row}, campo ${campo}, valor ${valor}`);
 
               try {
                 // Use GET para updateStatus (ou JSONP se tiver problema de CORS)
@@ -1428,7 +1428,7 @@ try {
                 // se seu Apps Script responder JSON com CORS, você conseguirá ler a resposta:
                 let json = null;
                 try { json = await resp.json(); } catch (e) { console.warn('Resposta não JSON', e); }
-                console.log('updateStatus resposta:', json || resp);
+                //console.log('updateStatus resposta:', json || resp);
               } catch (err) {
                 console.error('Erro ao atualizar status:', err);
                 app.dialog.alert('Erro ao salvar mudança. Verifique a conexão.');
@@ -1440,12 +1440,12 @@ try {
 $$(document).off('click', '.btn-delete');
 $$(document).on('click', '.btn-delete', async function (evt) {
 
-  console.log("🔥 CLICK NO BTN-DELETE DETECTADO");
+  //console.log("🔥 CLICK NO BTN-DELETE DETECTADO");
 
   evt.preventDefault();
   const $btn = $$(this);   // <-- cria o $btn corretamente
   const row = $btn.data('row');
-  console.log("ROW:", row);
+  //console.log("ROW:", row);
 
   if (!row) {
     app.dialog.alert("Linha inválida.");
@@ -1564,7 +1564,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
   // agora valor vira uma lista de unidades individuais
   const listaUnidades = parseRefrigerantesBR(valor);
 
-  console.log('[debug] refrigerantes parseados (unidades individuais):', listaUnidades);
+  //console.log('[debug] refrigerantes parseados (unidades individuais):', listaUnidades);
 
   // limpa lista interna
   refriSelecionados = [];
@@ -1579,7 +1579,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
 
 })();
 
-              console.log('[DEBUG pedido keys]', Object.keys(pedido));
+              //console.log('[DEBUG pedido keys]', Object.keys(pedido));
 
               // --- Preencher Acréscimo / Desconto (ROBUSTO) ---
               (function fillAcrescimo() {
@@ -1627,7 +1627,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                 $$('#input-acrescimo').val(valorFormatado);
 
                 // logs para debug — remova em produção se quiser
-                console.log('[debug] preencher acrescimo -> rawCandidates:', candidates, '-> acrescimoNum:', acrescimoNum, '-> exibido:', valorFormatado);
+                //console.log('[debug] preencher acrescimo -> rawCandidates:', candidates, '-> acrescimoNum:', acrescimoNum, '-> exibido:', valorFormatado);
               })();
 
               // --- Preencher Preço Total (se existir no pedido) ---
@@ -1643,7 +1643,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
                     // formata para BR (duas casas, vírgula)
                     const valorFormatado = num.toFixed(2).replace('.', ',');
                     $$('#input-preco-total').val(valorFormatado);
-                    console.log("[debug] preço total preenchido:", valorFormatado);
+                    //console.log("[debug] preço total preenchido:", valorFormatado);
                   }
                 } else {
                   $$('#input-preco-total').val('');
@@ -1743,7 +1743,7 @@ $$(document).on('click', '.btn-delete', async function (evt) {
   if(!bloco) return;
 
   bloco.style.display = visivel ? '' : 'none';
-  console.log('[UI] Contadores visíveis:', visivel);
+  //console.log('[UI] Contadores visíveis:', visivel);
 }
 
 
@@ -2117,7 +2117,7 @@ $$(document).on('popup:closed', '#popup-add-pedido', function () {
 });
 
   async function recarregarPedidos() {
-    console.log('🔄 Recarregando pedidos e estoque...');
+    //console.log('🔄 Recarregando pedidos e estoque...');
     const pedidos = await carregarPedidosDoDia();
     window.todosPedidos = pedidos;
 }
