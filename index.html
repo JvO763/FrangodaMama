@@ -641,11 +641,83 @@ const chipsContainer = document.getElementById('refri-chips');
 const hiddenInputRefri = document.getElementById('input-refrigerantes');
 const btnSugestoes = document.getElementById('btn-refri-sugestoes');
 
+function verificarCombos(){
+
+  const qtdFrango = Number(document.getElementById("qtd-frango").value || 0);
+  const qtdCoxa   = Number(document.getElementById("qtd-coxa").value || 0);
+
+  const refriStr = (document.getElementById("input-refrigerantes").value || "").toLowerCase();
+
+  const itens = refriStr.split(",");
+
+  let cocaOriginal = 0;
+  let cocaZero = 0;
+
+  itens.forEach(item => {
+
+    item = item.trim();
+
+    if(item.includes("coca-cola original")){
+      const match = item.match(/(\d+)/);
+      cocaOriginal += match ? Number(match[1]) : 1;
+    }
+
+    if(item.includes("coca-cola zero")){
+      const match = item.match(/(\d+)/);
+      cocaZero += match ? Number(match[1]) : 1;
+    }
+
+  });
+
+  let totalCoca = cocaOriginal + cocaZero;
+
+  // COMBO II (PRIORIDADE)
+  const comboCoxa = Math.min(Math.floor(qtdCoxa / 4), totalCoca);
+
+  if(comboCoxa > 0){
+    console.log(`🍗🥤 Combo II detectado: ${comboCoxa}`);
+    totalCoca -= comboCoxa; // consome as cocas usadas
+  }
+
+  // COMBO I (USA O RESTO DAS COCAS)
+  const comboFrango = Math.min(qtdFrango, totalCoca);
+
+  if(comboFrango > 0){
+    console.log(`🍗🥤 Combo I detectado: ${comboFrango}`);
+    totalCoca -= comboFrango;
+  }
+
+  const descontoComboI  = comboFrango * 2.00;
+  const descontoComboII = comboCoxa * 2.70;
+
+  const descontoTotal = -(descontoComboI + descontoComboII);
+
+  document.getElementById("input-acrescimo").value = descontoTotal.toFixed(2);
+
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const inputFrango = document.getElementById("qtd-frango");
+
+  if(inputFrango){
+    inputFrango.addEventListener("input", verificarCombos);
+  }
+
+  const inputCoxa = document.getElementById("qtd-coxa");
+
+  if(inputCoxa){
+    inputCoxa.addEventListener("input", verificarCombos);
+  }
+  
+});
+
 // adiciona opção (pode ser chamada várias vezes)
 function addRefrigerante(nome) {
   refriSelecionados.push(nome);
   syncInputRefrigerantes();
   atualizarPrecoTotal();
+  verificarCombos();
 }
 
 function syncInputRefrigerantes() {
