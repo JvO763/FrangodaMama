@@ -144,7 +144,7 @@
 
     <script>
     (function(){
-      const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwocyP7Zv7sEdIvKy6-sYqVLrGfhSbWafg8FvXQUkGucrursUjuujCErtkysYkVhqYXWg/exec';
+      const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKjyKxzsiT4kaFbsKeVC7HhmQ0-6GKvbK5AndXAG170SvPxGjnt_RLW0uo5z5y0eBRLg/exec';
       const $$ = Dom7;
 
       // ---------- Loading util (Framework7 if available, senão fallback DOM) ----------
@@ -292,6 +292,10 @@ async function fetchPedidosRange(start, end){
     const params = new URLSearchParams({ action: 'getPedidosRange', start, end });
     const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
     const json = await res.json();
+    //console.log("JSON completo recebido:", json);
+    //console.log("Pedidos recebidos:", json.pedidos);
+    //console.table(json.pedidos);
+
     return json.pedidos || [];
   } catch (err) {
     console.error('fetchPedidosRange erro:', err);
@@ -301,30 +305,82 @@ async function fetchPedidosRange(start, end){
   }
 }
 
+function parseAcompanhamentos(str){
+  const result = {
+    arroz:0,
+    mandioca:0,
+    maionese:0,
+    farofa:0
+  };
+
+  if(!str) return result;
+
+  str.split(',').forEach(item=>{
+    const match = item.trim().match(/^(\d+)\s+(.*)$/i);
+    if(!match) return;
+
+    const qtd = Number(match[1]);
+    const nome = match[2].toLowerCase();
+
+    if(nome.includes('arroz')) result.arroz += qtd;
+    if(nome.includes('mandioca')) result.mandioca += qtd;
+    if(nome.includes('maionese')) result.maionese += qtd;
+    if(nome.includes('farofa')) result.farofa += qtd;
+  });
+
+  return result;
+}
+
+function parseRefrigerantes(str){
+  const result = {
+    cocaOriginal:0,
+    cocaZero:0,
+    cotuba:0
+  };
+
+  if(!str) return result;
+
+  str.split(',').forEach(item=>{
+    const match = item.trim().match(/^(\d+)\s+(.*)$/i);
+    if(!match) return;
+
+    const qtd = Number(match[1]);
+    const nome = match[2].toLowerCase();
+
+    if(nome.includes('coca-cola original')) result.cocaOriginal += qtd;
+    if(nome.includes('coca-cola zero')) result.cocaZero += qtd;
+    if(nome.includes('cotuba')) result.cotuba += qtd;
+  });
+
+  return result;
+}
+
+
+
 
     // RENDER: agora mostra também cards dos pedidos (ganhos) quando for solicitado
     function renderMovimentos(itemsGastos, ganhosSum, pedidosList, viewType){
-  const container = document.getElementById('movimentos');
-  container.innerHTML = '';
+      const container = document.getElementById('movimentos');
+      container.innerHTML = '';
 
-  // calcula soma dos gastos a partir da lista recebida
-  const sumGastos = (itemsGastos || []).reduce((s, g) => s + Number(g.valor || 0), 0);
+      // calcula soma dos gastos a partir da lista recebida
+      const sumGastos = (itemsGastos || []).reduce((s, g) => s + Number(g.valor || 0), 0);
 
-  // mostra card resumo de ganhos se NÃO estivermos apenas em 'gastos'
-  if(viewType !== 'gastos'){
-    const card = document.createElement('div'); card.className='card';
-    card.innerHTML = `<div class="card-content"><div><strong>Ganhos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-ganho">R$ ${formatMoney(ganhosSum)}</div></div>`;
-    container.appendChild(card);
-  }
+      // mostra card resumo de ganhos se NÃO estivermos apenas em 'gastos'
+      if(viewType !== 'gastos'){
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `<div class="card-content"><div><strong>Ganhos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-ganho">R$ ${formatMoney(ganhosSum)}</div></div>`;
+        container.appendChild(card);
+      }
 
-  // --- novo: mostrar também o card de Gastos Totais quando for 'both' ou 'gastos' ---
-  if(viewType !== 'ganhos'){
-    const cardGastos = document.createElement('div'); cardGastos.className='card';
-    // mostramos o valor como negativo (sinal) e com classe de estilo para vermelho
-    const valorStr = `R$ -${formatMoney(sumGastos)}`;
-    cardGastos.innerHTML = `<div class="card-content"><div><strong>Gastos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-gasto">${valorStr}</div></div>`;
-    container.appendChild(cardGastos);
-  }
+      // --- novo: mostrar também o card de Gastos Totais quando for 'both' ou 'gastos' ---
+      if(viewType !== 'ganhos'){
+        const cardGastos = document.createElement('div'); cardGastos.className='card';
+        // mostramos o valor como negativo (sinal) e com classe de estilo para vermelho
+        const valorStr = `R$ -${formatMoney(sumGastos)}`;
+        cardGastos.innerHTML = `<div class="card-content"><div><strong>Gastos Totais</strong></div><div style="margin-top:6px;font-size:1.1rem;" class="mov-valor mov-tipo-gasto">${valorStr}</div></div>`;
+        container.appendChild(cardGastos);
+      }
 
   // Se precisamos listar pedidos individualmente (quando viewType === 'ganhos' OU 'both')
   if(viewType === 'ganhos' || viewType === 'both'){
@@ -344,17 +400,39 @@ async function fetchPedidosRange(start, end){
 
           const qFrango = Number(p.qntd_frango || p.qtd_frango || p.qntdFrango || 0);
           const qCoxa   = Number(p.qntd_sobrecoxa || p.qtd_sobrecoxa || 0);
-          const qRefri  = Number(p.qntd_refri || p.qtd_refri || 0);
-          const qArroz  = Number(p.qntd_arroz || p.qtd_arroz || 0);
-          const qMandioca = Number(p.qntd_mandioca || p.qtd_mandioca || 0);
-          const qMaionese = Number(p.qntd_maionese || p.qtd_maionese || 0);
-          const qFarofa   = Number(p.qntd_farofa || p.qtd_farofa || 0);
+          
+          const refri = parseRefrigerantes(p.tipo_refri);
+
+          const qCocaOriginal = refri.cocaOriginal;
+          const qCocaZero = refri.cocaZero;
+          const qCotuba = refri.cotuba;
+
+          const acomp = parseAcompanhamentos(p.acompanhamentos);
+
+          const qArroz = acomp.arroz;
+          const qMandioca = acomp.mandioca;
+          const qMaionese = acomp.maionese;
+          const qFarofa = acomp.farofa;
 
           const acrescimoRaw = (p.acrescimo !== undefined) ? p.acrescimo : (p['acrescimo/desconto'] !== undefined ? p['acrescimo/desconto'] : (p.acrescimo_desconto || 0));
           const acrescimoNum = Number(acrescimoRaw || 0);
           const acrescimoStr = (acrescimoNum === 0) ? 'R$ 0,00' : ((acrescimoNum > 0) ? `+ R$ ${formatMoney(acrescimoNum)}` : `- R$ ${formatMoney(Math.abs(acrescimoNum))}`);
 
           const obs = p.observacoes || p.observacao || p.tipo_refrigerante || '';
+
+          const itens = [];
+
+          if(qFrango > 0) itens.push(`<div>🐔 Frango: <strong>${qFrango}</strong></div>`);
+          if(qCoxa > 0) itens.push(`<div>🍗 Coxa-Sobrecoxa: <strong>${qCoxa}</strong></div>`);
+
+          if(qCocaOriginal > 0) itens.push(`<div>🥤 Coca-Cola Original: <strong>${qCocaOriginal}</strong></div>`);
+          if(qCocaZero > 0) itens.push(`<div>🥤 Coca-Cola Zero: <strong>${qCocaZero}</strong></div>`);
+          if(qCotuba > 0) itens.push(`<div>🥤 Cotuba: <strong>${qCotuba}</strong></div>`);
+
+          if(qArroz > 0) itens.push(`<div>🍚 Arroz: <strong>${qArroz}</strong></div>`);
+          if(qMandioca > 0) itens.push(`<div>🥔 Mandioca: <strong>${qMandioca}</strong></div>`);
+          if(qMaionese > 0) itens.push(`<div>🥗 Maionese: <strong>${qMaionese}</strong></div>`);
+          if(qFarofa > 0) itens.push(`<div>🥣 Farofa: <strong>${qFarofa}</strong></div>`);
 
           card.innerHTML = `
             <div class="card-content">
@@ -369,13 +447,7 @@ async function fetchPedidosRange(start, end){
                   <div style="font-weight:700; font-size:1.05rem;" class="mov-tipo-ganho">R$ ${formatMoney(preco)}</div>
 
                   <div style="margin-top:8px; font-size:0.92rem; color:#ccc; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-                    <div>🐔 Frango: <strong>${qFrango}</strong></div>
-                    <div>🍗 Coxa-Sobrecoxa: <strong>${qCoxa}</strong></div>
-                    <div>🥤 Refri: <strong>${qRefri}</strong></div>
-                    <div>🍚 Arroz: <strong>${qArroz}</strong></div>
-                    <div>🥔 Mandioca: <strong>${qMandioca}</strong></div>
-                    <div>🥗 Maionese: <strong>${qMaionese}</strong></div>
-                    <div>🥣 Farofa: <strong>${qFarofa}</strong></div>
+                    ${itens.join('')}
                     <div style="margin-top:6px;">Acrésc/Desc: <strong>${acrescimoStr}</strong></div>
                   </div>
                 </div>
