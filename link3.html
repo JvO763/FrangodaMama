@@ -309,6 +309,7 @@ function parseAcompanhamentos(str){
   const result = {
     arroz:0,
     mandioca:0,
+    mandiobacon:0,
     maionese:0,
     farofa:0
   };
@@ -324,6 +325,7 @@ function parseAcompanhamentos(str){
 
     if(nome.includes('arroz')) result.arroz += qtd;
     if(nome.includes('mandioca')) result.mandioca += qtd;
+    if(nome.includes('mandiobacon')) result.mandiobacon += qtd;
     if(nome.includes('maionese')) result.maionese += qtd;
     if(nome.includes('farofa')) result.farofa += qtd;
   });
@@ -335,7 +337,7 @@ function parseRefrigerantes(str){
   const result = {
     cocaOriginal:0,
     cocaZero:0,
-    cotuba:0
+    // cotuba:0
   };
 
   if(!str) return result;
@@ -349,7 +351,7 @@ function parseRefrigerantes(str){
 
     if(nome.includes('coca-cola original')) result.cocaOriginal += qtd;
     if(nome.includes('coca-cola zero')) result.cocaZero += qtd;
-    if(nome.includes('cotuba')) result.cotuba += qtd;
+    // if(nome.includes('cotuba')) result.cotuba += qtd;
   });
 
   return result;
@@ -405,12 +407,13 @@ function parseRefrigerantes(str){
 
           const qCocaOriginal = refri.cocaOriginal;
           const qCocaZero = refri.cocaZero;
-          const qCotuba = refri.cotuba;
+          // const qCotuba = refri.cotuba;
 
           const acomp = parseAcompanhamentos(p.acompanhamentos);
 
           const qArroz = acomp.arroz;
           const qMandioca = acomp.mandioca;
+          const qMandiobacon = acomp.mandiobacon;
           const qMaionese = acomp.maionese;
           const qFarofa = acomp.farofa;
 
@@ -427,10 +430,11 @@ function parseRefrigerantes(str){
 
           if(qCocaOriginal > 0) itens.push(`<div>🥤 Coca-Cola Original: <strong>${qCocaOriginal}</strong></div>`);
           if(qCocaZero > 0) itens.push(`<div>🥤 Coca-Cola Zero: <strong>${qCocaZero}</strong></div>`);
-          if(qCotuba > 0) itens.push(`<div>🥤 Cotuba: <strong>${qCotuba}</strong></div>`);
+          // if(qCotuba > 0) itens.push(`<div>🥤 Cotuba: <strong>${qCotuba}</strong></div>`);
 
           if(qArroz > 0) itens.push(`<div>🍚 Arroz: <strong>${qArroz}</strong></div>`);
           if(qMandioca > 0) itens.push(`<div>🥔 Mandioca: <strong>${qMandioca}</strong></div>`);
+          if(qMandiobacon > 0) itens.push(`<div>🥓 MandioBacon: <strong>${qMandiobacon}</strong></div>`);
           if(qMaionese > 0) itens.push(`<div>🥗 Maionese: <strong>${qMaionese}</strong></div>`);
           if(qFarofa > 0) itens.push(`<div>🥣 Farofa: <strong>${qFarofa}</strong></div>`);
 
