@@ -1,0 +1,780 @@
+const SHEET_LOGIN = 'Usuarios';
+
+function normalizarNumeroBR(valor) {
+  if (valor === undefined || valor === null) return 0;
+  const s = String(valor).trim();
+  if (s === '') return 0;
+  const n = parseFloat(s.replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatarNumeroBR(num) {
+  return Number(num || 0).toFixed(2).replace('.', ',');
+}
+
+function doGet(e) {
+  try {
+    const params = e.parameter || {};
+    const action = params.action || '';
+    const callback = params.callback;
+    const ss = SpreadsheetApp.getActive();
+    const tz = ss.getSpreadsheetTimeZone();
+
+    // Actions first
+    if (action === 'login') {
+      const resp = validarLogin(params.usuario, params.senha);
+      return respond(resp, callback);
+    }
+
+    if (action === 'updateOrder') {
+      const resp = atualizarPedido(params);
+      return respond(resp, callback);
+    }
+
+    if (action === 'getGastos') return respond(getGastosHandler(params), callback);
+
+    if (action === 'getPedidosRange') {
+      const start = params.start; // YYYY-MM-DD
+      const end = params.end;
+      const resp = getPedidosRange(start, end);
+      return respond({ pedidos: resp }, callback);
+    }
+
+    if (action === 'getPedidosSum') {
+      const start = params.start;
+      const end = params.end;
+      const sum = getPedidosSum(start, end);
+      return respond({ sum: sum }, callback);
+    }
+
+    if (action === 'updateStatus') {
+      const row = Number(params.row);
+      const campo = params.campo;
+      const valor = (params.valor === 'true' || params.valor === '1' || params.valor === true);
+      const resp = atualizarStatus(row, campo, valor);
+      return respond(resp, callback);
+    }
+
+    if (action === 'addOrder') {
+      const dados = {
+        data_entrega: params.data_entrega,
+        horario_entrega: params.horario_entrega,
+        qntd_frango: params.qntd_frango,
+        qntd_sobrecoxa: params.qntd_sobrecoxa,
+        qntd_refri: params.qntd_refri,
+        nome_cliente: params.nome_cliente,
+        endereco: params.endereco,
+        status: params.status,
+        observacoes: params.observacoes,
+        pago: (params.pago === 'true' || params.pago === '1'),
+        entregue: (params.entregue === 'true' || params.entregue === '1')
+      };
+      const resp = tratarAddOrder(dados, tz);
+      return respond(resp, callback);
+    }
+
+    if (action === 'deleteOrder') {
+      const resp = deleteOrderHandler(params);
+      return respond(resp, callback);
+    }
+
+    if (action === 'getLastGroups') {
+      const resp = getLastGroupsHandler();
+      return respond(resp, callback);
+    }
+
+    // Default: listar pedidos
+    const sheet = ss.getSheetByName("Pedidos");
+    if (!sheet) return respond({ erro: "Aba 'Pedidos' não encontrada" }, callback);
+
+    const data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return respond({ pedidos: [] }, callback);
+
+    const headers = data.shift().map(h => String(h).trim());
+
+    const pedidos = data.map((row, idx) => {
+      const pedido = {};
+      headers.forEach((h, i) => {
+        pedido[h] = row[i];
+      });
+      // adiciona número da linha real na planilha (header = 1)
+      pedido._sheetRow = idx + 2;
+      return pedido;
+    });
+
+    const dateParam = params.date;
+    let pedidosFiltrados = pedidos;
+    if (dateParam) {
+      pedidosFiltrados = pedidos.filter(p => {
+        let d = p["data_entrega"];
+        if (!d) return false;
+        let dateObj;
+        if (d instanceof Date) {
+          dateObj = d;
+        } else if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+          // string YYYY-MM-DD -> criar Date no fuso local da planilha
+          const parts = d.split('-').map(Number);
+          dateObj = new Date(parts[0], parts[1]-1, parts[2]);
+        } else {
+          // tenta parse genérico (cautela com fusos)
+          dateObj = new Date(d);
+        }
+        if (isNaN(dateObj.getTime())) return false;
+        const formatted = Utilities.formatDate(dateObj, tz, "yyyy-MM-dd");
+        return formatted === dateParam;
+      });
+    }
+
+    // Ajustar horario_entrega para HH:mm quando vier Date ou string ISO
+    const resultado = pedidosFiltrados.map(p => {
+      const copy = Object.assign({}, p);
+      const h = copy.horario_entrega;
+
+      // Se for Date, formatar diretamente usando o timezone da planilha
+      if (Object.prototype.toString.call(h) === "[object Date]" && !isNaN(h.getTime())) {
+        copy.horario_entrega = Utilities.formatDate(h, tz, "HH:mm");
+      } else if (typeof h === 'string' && h.length > 0) {
+        // Se for ISO com T (yyyy-mm-ddTHH:MM:SS) -> extrai a parte hora sem criar Date
+        const mIso = h.match(/T(\d{2}):(\d{2})/);
+        if (mIso) {
+          copy.horario_entrega = `${mIso[1]}:${mIso[2]}`;
+        } else {
+          // se for string com espaço "yyyy-mm-dd HH:MM:SS" ou "HH:MM:SS"
+          const mSpace = h.match(/(\d{2}):(\d{2})/);
+          copy.horario_entrega = mSpace ? `${mSpace[1]}:${mSpace[2]}` : '';
+        }
+      } else {
+        copy.horario_entrega = '';
+      }
+
+      // converte valores de pago/entregue para booleanos
+      copy.pago = (copy.pago === true || String(copy.pago).toLowerCase() === 'true' || copy.pago === 1);
+      copy.entregue = (copy.entregue === true || String(copy.entregue).toLowerCase() === 'true' || copy.entregue === 1);
+
+      return copy;
+    });
+
+    return respond({ pedidos: resultado }, callback);
+
+  } catch (err) {
+    return respond({ erro: err.message, stack: err.stack }, e && e.parameter && e.parameter.callback);
+  }
+}
+
+// Trata POST (JSON enviado via fetch/curl)
+function doPost(e) {
+  try {
+    const content = e.postData && e.postData.contents;
+    let dados = {};
+    if (!content) return sendJSON({ erro: "Sem conteúdo no POST" });
+
+    try {
+      dados = JSON.parse(content);
+    } catch (err) {
+      // tenta parse form-url-encoded
+      const params = {};
+      content.split('&').forEach(pair => {
+        const [k, v] = pair.split('=');
+        if (k) params[decodeURIComponent(k)] = decodeURIComponent((v || '').replace(/\+/g, ' '));
+      });
+      dados = params;
+    }
+
+    const ss = SpreadsheetApp.getActive();
+    const tz = ss.getSpreadsheetTimeZone();
+
+    // se action=addOrder via POST (compatível)
+    if (dados.action && dados.action === 'addOrder') {
+      const res = tratarAddOrder(dados, tz);
+      return sendJSON(res);
+    }
+
+    if (dados.action === 'addGasto') return sendJSON(addGastoHandler(dados));
+    if (dados.action === 'updateGasto') return sendJSON(updateGastoHandler(dados));
+    if (dados.action === 'deleteGasto') return sendJSON(deleteGastoHandler(dados));
+
+
+    if (dados.action && dados.action === 'updateOrder') {
+      const res = atualizarPedido(dados);
+      return sendJSON(res);
+    }
+
+    if (dados.action === 'saveGroups') {
+      return sendJSON(saveGroupsHandler(dados));
+    }
+
+
+
+    // default: trata como addOrder
+    const res = tratarAddOrder(dados, tz);
+    return sendJSON(res);
+
+  } catch (err) {
+    return sendJSON({ erro: err.message });
+  }
+}
+
+function tratarAddOrder(dados, tz) {
+  const ss = SpreadsheetApp.getActive();
+  const sheet = ss.getSheetByName("Pedidos");
+  if (!sheet) return { erro: "Aba 'Pedidos' não encontrada" };
+
+  const PRECO_FRANGO_ASSADO = 49.90;
+  const PRECO_COXA_SOBRECOXA = 9.90;
+  const PRECO_ARROZ = 8.00;
+
+  // Primeiro leia OS DADOS
+  const id = Date.now();
+  const dataPedido = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd'T'HH:mm:ss");
+  const dataEntrega = dados.data_entrega || new Date().toISOString().split("T")[0];
+  const nomeCliente = dados.nome_cliente || dados.nomeCliente || "";
+  const endereco = dados.endereco || "";
+  const numero = dados.numero || "";
+  const cep = dados.cep || "";
+
+  const qntd_frango = parseInt(dados.qntd_frango || dados.qtd_frango || 0) || 0;
+  const qntd_sobrecoxa = parseInt(dados.qntd_sobrecoxa || dados.qtd_sobrecoxa || 0) || 0;
+  const qntd_refri = parseInt(dados.qntd_refri || dados.qtd_refri || 0) || 0;
+  const qntd_arroz = parseInt(dados.qntd_arroz || dados.qtd_arroz || 0) || 0; // novo
+
+  function normalizarNumeroBR(valor) {
+    if (valor === undefined || valor === null) return 0;
+
+    const s = String(valor).trim();
+    if (s === '') return 0;
+
+    // troca vírgula por ponto para cálculo
+    const num = parseFloat(s.replace(',', '.'));
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  const acrescimoNum = normalizarNumeroBR(dados.acrescimo);
+  const acrescimoBR = acrescimoNum.toFixed(2).replace('.', ',');
+
+  const tipo_refrigerante = dados.tipo_refrigerante || '';
+  const observacoes = dados.observacoes || '';
+  const acompanhamentos = dados.acompanhamentos || '';
+
+    // horario_entrega no formato "HH:MM" -> armazenar como ISO no timezone da planilha (mantém sua lógica)
+  let horario_entrega = dados.horario_entrega || '';
+  if (horario_entrega && /^\d{1,2}:\d{2}$/.test(horario_entrega)) {
+    const [h, m] = horario_entrega.split(':').map(Number);
+    const partesData = dataEntrega.split('-');
+    const hora = new Date(partesData[0], partesData[1]-1, partesData[2], h, m, 0);
+
+    const ss2 = SpreadsheetApp.getActive();
+    const tz2 = ss2.getSpreadsheetTimeZone();
+    const offsetPlanilha = new Date().getTimezoneOffset() * 60000;
+    const offsetGoogle = Utilities.formatDate(new Date(), tz2, "Z");
+    const horasOffsetGoogle = parseInt(offsetGoogle.slice(0, 3));
+    const minutosOffsetGoogle = parseInt(offsetGoogle.slice(0, 1) + offsetGoogle.slice(3));
+    const totalOffsetGoogle = (horasOffsetGoogle * 60 + minutosOffsetGoogle) * 60000;
+    const horaCorrigida = new Date(hora.getTime() - offsetPlanilha - totalOffsetGoogle);
+    horario_entrega = Utilities.formatDate(horaCorrigida, tz2, "yyyy-MM-dd'T'HH:mm:ss");
+  } else if (typeof horario_entrega === 'string' && horario_entrega.includes('T')) {
+    // já em ISO
+  } else {
+    horario_entrega = '';
+  }
+
+  const pago = (dados.pago === true || String(dados.pago).toLowerCase() === 'true' || dados.pago === '1');
+  const entregue = (dados.entregue === true || String(dados.entregue).toLowerCase() === 'true' || dados.entregue === '1');
+
+  // Calcula preço total incluindo arroz e acrescimo
+
+  const precoTotalFront =
+  dados.preco_total ??
+  dados.precoTotal ??
+  dados.preco ??
+  null;
+
+
+  const subtotal =
+    (qntd_frango * PRECO_FRANGO_ASSADO) +
+    (qntd_sobrecoxa * PRECO_COXA_SOBRECOXA) +
+    (calcularPrecoRefrigerantes(tipo_refrigerante)) +
+    (qntd_arroz * PRECO_ARROZ);
+
+  let precoTotal;
+
+  if (precoTotalFront !== null) {
+    // veio do frontend → confia
+    precoTotal = Number(
+      String(precoTotalFront).replace(',', '.')
+    ) || 0;
+  } else {
+    // fallback: calcula no backend
+    precoTotal = Number((subtotal + acrescimoNum).toFixed(2));
+  }
+
+
+
+  const novaLinha = [
+    id,
+    dataPedido,
+    dataEntrega,
+    horario_entrega,
+    qntd_frango,
+    qntd_sobrecoxa,
+    qntd_refri,
+    acompanhamentos || '',          // 🔴 NOVO
+    nomeCliente,
+    endereco,
+    numero,
+    cep,
+    precoTotal,               // total já calculado
+    acrescimoBR,                // novo (pra registro)
+    tipo_refrigerante || '',  // novo (texto livre dos refrigerantes)
+    dados.status || 'agendado',
+    observacoes || '',
+    pago,
+    entregue
+  ];
+
+  console.log('DEBUG precoTotalFront:', precoTotalFront);
+  console.log('DEBUG precoTotalFinal:', precoTotal);
+
+
+  sheet.appendRow(novaLinha);
+
+  return {
+    sucesso: true,
+    mensagem: "Pedido adicionado com sucesso!",
+    pedido: { id, dataPedido, dataEntrega, horario_entrega, qntd_frango, qntd_sobrecoxa, qntd_refri, qntd_arroz, nomeCliente, precoTotal }
+  };
+}
+
+function atualizarStatus(row, campo, valor) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Pedidos');
+    if (!sheet) return { erro: "Aba 'Pedidos' não encontrada" };
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const colIndex = headers.indexOf(campo) + 1;
+    if (colIndex === 0) return { erro: `Coluna '${campo}' não encontrada.` };
+    sheet.getRange(row, colIndex).setValue(valor);
+    return { sucesso: true, campo, valor, row };
+  } catch (err) {
+    return { erro: err.message };
+  }
+}
+
+function atualizarPedido(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Pedidos');
+    if (!sheet) return { erro: "Aba 'Pedidos' não encontrada" };
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+
+    const row = Number(params.row);
+    if (!row || row <= 1) return { erro: "Parâmetro 'row' inválido." };
+
+    // Campos que permitimos atualizar (nomes devem bater com headers da planilha)
+    const allowed = [
+      'data_entrega','horario_entrega','qntd_frango','qntd_sobrecoxa','qntd_refri','acompanhamentos',
+      'nome_cliente','endereco','numero','cep','preco_total','acrescimo/desconto','tipo_refri',
+      'status','observacoes','pago','entregue'
+    ];
+
+    const updates = [];
+
+    allowed.forEach(field => {
+      // aceita variações como tipo_refrigerante / tipoRefri etc.
+      let val = params[field];
+      if (val === undefined && params.hasOwnProperty(field) === false) {
+        // tenta algumas aliases
+        if (field === 'preco_total') val = params.precoTotal || params.preco_total || params.preco;
+        if (field === 'qntd_frango') val = params.qntd_frango || params.qtd_frango || params.qntdFrango;
+        if (field === 'qntd_sobrecoxa') val = params.qntd_sobrecoxa || params.qtd_sobrecoxa;
+        if (field === 'qntd_refri') val = params.qntd_refri || params.qtd_refri;
+        if (field === 'acompanhamentos') {
+          val = params.acompanhamentos || params.acomp || '';
+        }
+        if (field === 'tipo_refri') val = params.tipo_refrigerante || params.tipoRefri || params.tipo_refri;
+        if (field === 'nome_cliente') val = params.nome_cliente || params.nome || params.cliente;
+        if (field === 'acrescimo/desconto') val = params.acrescimo || params.desconto || params.acrescimo_desconto;
+      }
+
+      if (val !== undefined) {
+        const colIndex = headers.indexOf(field);
+        if (colIndex >= 0) {
+          // conversões simples
+          let finalVal = val;
+
+          // quantidades → número
+          if (field.startsWith('qntd_')) {
+            finalVal = Number(val) || 0;
+          }
+
+          // preço total → número
+          else if (field === 'preco_total') {
+            finalVal = Number(val) || 0;
+          }
+
+          else if (field === 'acrescimo/desconto') {
+            const num = normalizarNumeroBR(val);
+            finalVal = formatarNumeroBR(num); // ← salva "2,50"
+          }
+
+          else if (field === 'acompanhamentos') {
+            finalVal = String(val || '');
+          }
+
+
+          // booleanos
+          else if (field === 'pago' || field === 'entregue') {
+            finalVal = (
+              val === true ||
+              String(val).toLowerCase() === 'true' ||
+              String(val) === '1' ||
+              val === 1
+            );
+          }
+
+          if (field === 'pago' || field === 'entregue') {
+            finalVal = (val === true || String(val).toLowerCase() === 'true' || String(val) === '1' || val === 1);
+          }
+          updates.push({ col: colIndex + 1, value: finalVal });
+        }
+      }
+    });
+
+    if (updates.length === 0) return { sucesso: false, mensagem: "Nenhum campo para atualizar" };
+
+    // aplica atualizações (um por um)
+    updates.forEach(u => {
+      sheet.getRange(row, u.col).setValue(u.value);
+    });
+
+    return { sucesso: true, atualizados: updates.length, row: row };
+
+  } catch (err) {
+    return { erro: err.message };
+  }
+}
+
+
+function validarLogin(usuario, senha) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_LOGIN);
+    if (!sheet) return { success: false };
+    const data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: false };
+    const headers = data.shift();
+    const idxUsuario = headers.indexOf('Usuario');
+    const idxSenha = headers.indexOf('Senha');
+    for (let i = 0; i < data.length; i++) {
+      const linha = data[i];
+      if (linha[idxUsuario] === usuario && linha[idxSenha] === senha) return { success: true };
+    }
+    return { success: false };
+  } catch (err) {
+    return { success: false, erro: err.message };
+  }
+}
+
+function respond(obj, callback) {
+  if (callback) {
+    const body = `${callback}(${JSON.stringify(obj)});`;
+    return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } else {
+    return sendJSON(obj);
+  }
+}
+
+function sendJSON(obj) {
+  const output = ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  try {
+    output.setHeader('Access-Control-Allow-Origin', '*');
+    output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  } catch (e) {}
+  return output;
+}
+
+function doOptions(e) {
+  const out = ContentService.createTextOutput('').setMimeType(ContentService.MimeType.JSON);
+  try {
+    out.setHeader('Access-Control-Allow-Origin', '*');
+    out.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    out.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  } catch (e) {}
+  return out;
+}
+
+function getGastosHandler(params){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Gastos');
+  if(!sheet) return { gastos: [] };
+  var data = sheet.getDataRange().getValues();
+  if(!data || data.length < 2) return { gastos: [] };
+  var headers = data.shift().map(String);
+  var rows = data.map((r, idx) => {
+    var obj = {};
+    headers.forEach(function(h,i){ obj[h] = r[i]; });
+    obj._row = idx + 2;
+    return obj;
+  });
+
+  var start = params.start;
+  var end = params.end;
+  function inRange(dStr){
+    if(!dStr) return false;
+    var d = new Date(dStr);
+    if(isNaN(d)) return false;
+    if(start && new Date(d) < new Date(start + 'T00:00:00')) return false;
+    if(end && new Date(d) > new Date(end + 'T23:59:59')) return false;
+    return true;
+  }
+
+  var out = rows.filter(r => inRange(r['data']));
+  // normalize fields
+  var mapped = out.map(r => ({
+    ID: r['ID'] || r['Id'] || r['_row'],
+    data: (r['data'] instanceof Date) ? Utilities.formatDate(r['data'], ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd') : String(r['data'] || ''),
+    valor: Number(r['valor'] || 0),
+    titulo: r['titulo'] || '',
+    observacao: r['observacao'] || r['observacao'] || ''
+  }));
+  return { gastos: mapped };
+}
+
+function addGastoHandler(params){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Gastos');
+  if(!sheet) return { sucesso: false, erro: "Aba 'Gastos' não encontrada" };
+  var newId = Date.now();
+  var dataVal = params.data || Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+  var valor = Number(params.valor) || 0;
+  var titulo = params.titulo || '';
+  var obs = params.observacao || params.observacao || '';
+  // find headers order to append correctly (if headers exist)
+  var headers = sheet.getDataRange().getValues()[0].map(String);
+  // append as: ID, data, valor, titulo, observacao  (se sua planilha for diferente, ajuste)
+  sheet.appendRow([ newId, dataVal, valor, titulo, obs ]);
+  return { sucesso: true, id: newId };
+}
+
+function updateGastoHandler(params){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Gastos');
+  if(!sheet) return { sucesso:false, erro: "Aba 'Gastos' não encontrada" };
+  var data = sheet.getDataRange().getValues();
+  if(!data || data.length < 2) return { sucesso:false, erro: "Sem dados" };
+  var headers = data.shift().map(String);
+  var idxId = headers.indexOf('ID');
+  if(idxId < 0) idxId = headers.indexOf('Id');
+  if(idxId < 0) return { sucesso:false, erro: "Coluna ID não encontrada" };
+  var targetId = String(params.id);
+  for(var i=0;i<data.length;i++){
+    if(String(data[i][idxId]) === targetId){
+      var rowIndex = i+2;
+      // campos: data, valor, titulo, observacao
+      var colData = headers.indexOf('data') + 1;
+      var colValor = headers.indexOf('valor') + 1;
+      var colTitulo = headers.indexOf('titulo') + 1;
+      var colObs = headers.indexOf('observacao') + 1;
+      if(colData>0) sheet.getRange(rowIndex, colData).setValue(params.data || '');
+      if(colValor>0) sheet.getRange(rowIndex, colValor).setValue(Number(params.valor) || 0);
+      if(colTitulo>0) sheet.getRange(rowIndex, colTitulo).setValue(params.titulo || '');
+      if(colObs>0) sheet.getRange(rowIndex, colObs).setValue(params.observacao || '');
+      return { sucesso:true, row: rowIndex };
+    }
+  }
+  return { sucesso:false, erro: "ID não encontrado" };
+}
+
+function deleteGastoHandler(params){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Gastos');
+  if(!sheet) return { sucesso:false, erro: "Aba 'Gastos' não encontrada" };
+  var data = sheet.getDataRange().getValues();
+  if(!data || data.length < 2) return { sucesso:false, erro: "Sem dados" };
+  var headers = data.shift().map(String);
+  var idxId = headers.indexOf('ID');
+  if(idxId < 0) idxId = headers.indexOf('Id');
+  if(idxId < 0) return { sucesso:false, erro: "Coluna ID não encontrada" };
+  var targetId = String(params.id);
+  for(var i=0;i<data.length;i++){
+    if(String(data[i][idxId]) === targetId){
+      sheet.deleteRow(i+2);
+      return { sucesso:true };
+    }
+  }
+  return { sucesso:false, erro: "ID não encontrado" };
+}
+
+function getPedidosRange(start, end) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Pedidos');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  const headers = data.shift();
+
+  const startDate = start ? new Date(start + "T00:00:00") : null;
+  const endDate   = end ? new Date(end + "T23:59:59") : null;
+
+  return data
+    .map((row, i) => {
+
+      const dataPedido = new Date(row[1]);
+
+      return {
+        ID: row[0],
+        data_pedido: row[1],
+        data_entrega: row[2],
+        horario_entrega: row[3],
+
+        qntd_frango: Number(row[4]) || 0,
+        qntd_sobrecoxa: Number(row[5]) || 0,
+        qntd_refri: Number(row[6]) || 0,
+
+        acompanhamentos: row[7] || "",
+
+        nome_cliente: row[8],
+        endereco: row[9],
+        numero: row[10],
+        cep: row[11],
+
+        preco_total: Number(row[12]) || 0,
+        acrescimo: Number(row[13]) || 0,
+
+        tipo_refri: row[14] || "",
+        status: row[15] || "",
+        observacoes: row[16] || "",
+
+        pago: row[17],
+        entregue: row[18],
+        grupo: row[19],
+
+        _sheetRow: i + 2
+      };
+    })
+    .filter(p => {
+
+      const dt = new Date(p.data_pedido);
+
+      if (startDate && dt < startDate) return false;
+      if (endDate && dt > endDate) return false;
+
+      return true;
+    });
+}
+
+function getPedidosSum(start, end) {
+  const list = getPedidosRange(start, end);
+  return list.reduce((s, p) => s + Number(p.preco_total || 0), 0);
+}
+
+function deleteOrderHandler(params) {
+  try {
+    const row = Number(params.row);
+    if (!row || row <= 1) return { sucesso: false, erro: "Parâmetro 'row' inválido" };
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Pedidos');
+    if (!sheet) return { sucesso: false, erro: "Aba 'Pedidos' não encontrada" };
+
+    const lastRow = sheet.getLastRow();
+    if (row > lastRow) return { sucesso: false, erro: "Linha informada maior que o total da planilha" };
+
+    sheet.deleteRow(row);
+
+    return { sucesso: true, mensagem: "Pedido apagado", row: row };
+  } catch (err) {
+    return { sucesso: false, erro: err.message };
+  }
+}
+
+function saveGroupsHandler(params) {
+  try {
+    // params: objeto JS (se vier como string JSON, caller já parseou no doPost)
+    var groups = params.groups || params.groupsJson || null;
+    if (!groups) {
+      // se veio como string (alguns clients mandam groups: '[[2,3],[4]]')
+      if (typeof params === 'string') {
+        try { groups = JSON.parse(params); } catch (e) { groups = null; }
+      } else if (typeof params.groupsJson === 'string') {
+        try { groups = JSON.parse(params.groupsJson); } catch (e) { groups = null; }
+      }
+    }
+
+    if (!groups) return { sucesso: false, erro: 'Nenhum groups fornecido' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = 'Grupos';
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      // cria com cabeçalho
+      sheet = ss.insertSheet(sheetName);
+      sheet.appendRow(['timestamp', 'groups_json']);
+    }
+
+    var tz = ss.getSpreadsheetTimeZone();
+    var ts = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss');
+
+    var jsonStr = JSON.stringify(groups);
+
+    sheet.appendRow([ts, jsonStr]);
+
+    return { sucesso: true, timestamp: ts };
+  } catch (err) {
+    return { sucesso: false, erro: err.message || String(err) };
+  }
+}
+
+function getLastGroupsHandler() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Grupos');
+    if (!sheet) return { sucesso: true, grupos: null };
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { sucesso: true, grupos: null }; // só cabeçalho
+    // assumindo colunas: timestamp | groups_json
+    const jsonCell = sheet.getRange(lastRow, 2).getValue(); // coluna 2 = groups_json
+    if (!jsonCell) return { sucesso: true, grupos: null };
+    let groups = null;
+    try { groups = JSON.parse(jsonCell); } catch (e) { groups = null; }
+    return { sucesso: true, grupos: groups, timestamp: sheet.getRange(lastRow,1).getValue() };
+  } catch (err) {
+    return { sucesso: false, erro: String(err) };
+  }
+}
+
+function calcularPrecoRefrigerantes(tipo_refrigerante) {
+  if (!tipo_refrigerante) return 0;
+
+  const itens = tipo_refrigerante
+    .split(',')
+    .map(i => i.trim())
+    .filter(i => i);
+
+  let total = 0;
+
+  itens.forEach(item => {
+    // detecta quantidade (ex: "2 Cotuba")
+    const match = item.match(/^(\d+)\s+(.+)$/i);
+    const qtd = match ? parseInt(match[1], 10) : 1;
+    const nome = match ? match[2].toLowerCase() : item.toLowerCase();
+
+    for (let i = 0; i < qtd; i++) {
+      if (nome.includes('cotuba')) {
+        total += 8;
+      } else if (
+        nome.includes('coca') &&
+        (nome.includes('original') || nome.includes('zero'))
+      ) {
+        total += 10;
+      } else {
+        // fallback (caso apareça outro refri no futuro)
+        total += 10;
+      }
+    }
+  });
+
+  return total;
+}
