@@ -581,6 +581,8 @@ function exibirGrupos(grupos) {
       const qtdMandioBacon = toNumber(p.qntd_MandioBacon ?? p.qtd_MandioBacon ?? 0);
       const qtdMaionese = toNumber(p.qntd_maionese ?? p.qtd_maionese ?? 0);
       const qtdFarofa = toNumber(p.qntd_farofa ?? p.qtd_farofa ?? 0);
+      const qtdLasanha = toNumber(p.qntd_lasanha ?? p.qtd_lasanha ?? 0);
+      const qtdMacarrao = toNumber(p.qntd_macarrao ?? p.qtd_macarrao ?? 0);
       const tipoRefri = p.tipo_refrigerante ?? p.tipo_refri ?? p.tipoRefri ?? '';
       const acompanhamentos = p.acompanhamentos || '';
       const preco = toNumber(p.preco_total ?? p.precoTotal ?? p.preco ?? 0);
@@ -596,7 +598,7 @@ function exibirGrupos(grupos) {
           <div style="font-size:0.9rem; margin-top:6px;">
             <div><strong>Endereço:</strong> ${endereco}</div>
             <div><strong>CEP:</strong> ${cep} &nbsp;</div>
-            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} ${qtdMandioca ? `• Mandioca ${qtdMandioca}` : ''} ${qtdMandioBacon ? `• MandioBacon ${qtdMandioBacon}` : ''} ${qtdMaionese ? `• Maionese ${qtdMaionese}` : ''} ${qtdFarofa ? `• Farofa ${qtdFarofa}` : ''}</div>
+            <div style="margin-top:6px;"><strong>Itens:</strong> ${qtdFrango ? `Frango ${qtdFrango}` : ''} ${qtdCoxa ? `• Coxa ${qtdCoxa}` : ''} ${qtdArroz ? `• Arroz ${qtdArroz}` : ''} ${qtdMandioca ? `• Mandioca ${qtdMandioca}` : ''} ${qtdMandioBacon ? `• MandioBacon ${qtdMandioBacon}` : ''} ${qtdMaionese ? `• Maionese ${qtdMaionese}` : ''} ${qtdFarofa ? `• Farofa ${qtdFarofa}` : ''} ${qtdLasanha ? `• Lasanha ${qtdLasanha}` : ''} ${qtdMacarrao ? `• Macarrão ${qtdMacarrao}` : ''}</div>
             ${acompanhamentos ? `<div><strong>Acompanhamentos:</strong> ${acompanhamentos}</div>` : ''}
             ${tipoRefri ? `<div><strong>Refrigerantes:</strong> ${tipoRefri}</div>` : ''}
             ${p.observacoes ? `<div style="margin-top:6px;"><strong>Obs:</strong> ${p.observacoes}</div>` : ''}

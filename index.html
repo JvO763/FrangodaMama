@@ -361,6 +361,8 @@
     <div class="prod-row"><div class="prod-label">🥔 Mandioca</div><div class="prod-value" id="pv-mandioca">0 / 0</div></div>
     <div class="prod-row"><div class="prod-label">🥓 MandioBacon</div><div class="prod-value" id="pv-mandiobacon">0 / 0</div></div>
     <div class="prod-row"><div class="prod-label">🥣 Farofa</div><div class="prod-value" id="pv-farofa">0 / 0</div></div>
+    <div class="prod-row"><div class="prod-label">🍅 Lasanha</div><div class="prod-value" id="pv-lasanha">0 / 0</div></div>
+    <div class="prod-row"><div class="prod-label">🍝 Macarrão</div><div class="prod-value" id="pv-macarrao">0 / 0</div></div>
 
     <div class="actions">
       <div style="display:flex; gap:6px;">
@@ -422,6 +424,16 @@
         <label style="min-width:110px;">🥣 Farofa</label>
         <input type="number" id="inp-prod-farofa" min="0" value="0">
       </div>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="min-width:110px;">🍅 Lasanha</label>
+          <input type="number" id="inp-prod-lasanha" min="0" value="0">
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="min-width:110px;">🍝 Macarrão</label>
+          <input type="number" id="inp-prod-macarrao" min="0" value="0">
+        </div>
 
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
         <button id="btn-save-produzidos" class="small-btn">Salvar</button>
@@ -572,7 +584,9 @@ const ACOMPANHAMENTOS = {
   maionese: { nome: 'Maionese', preco: 20 },
   mandioca: { nome: 'Mandioca', preco: 15 },
   mandiobacon: { nome: 'MandioBacon', preco: 20 },
-  farofa: { nome: 'Farofa', preco: 15 }
+  farofa: { nome: 'Farofa', preco: 15 },
+  lasanha: { nome: 'Lasanha', preco: 22 },
+  macarrao: { nome: 'Macarrão', preco: 20 }
 };
 
 window.atualizarChipsAcompanhamentos = function () {
@@ -998,7 +1012,7 @@ function atualizarPrecoTotal() {
 
 
 function getAcompanhamentosNumericos(pedido) {
-   const base = { arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0 };
+   const base = { arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0, lasanha:0, macarrao:0 };
    const str = pedido.acompanhamentos || '';
 
    str.split(',').forEach(p => {
@@ -1014,6 +1028,8 @@ function getAcompanhamentosNumericos(pedido) {
       else if(n.includes('mandioca')) base.mandioca += q;
       else if(n.includes('farofa')) base.farofa += q;
       else if(n.includes('mandiobacon')) base.mandiobacon += q;
+      else if(n.includes('lasanha')) base.lasanha += q;
+      else if(n.includes('macarrao')) base.macarrao += q;
    });
 
    return base;
@@ -1024,13 +1040,13 @@ function getAcompanhamentosNumericos(pedido) {
           // -------------------- START: STOCK CHECK (robusto para refri + acompanhamentos) --------------------
 
 // produced / sold
-const produced = getProducedCounts(getTodayKey()); // {frango, coxa, coca_original, ... arroz, maionese, mandioca, mandiobacon, farofa}
+const produced = getProducedCounts(getTodayKey()); // {frango, coxa, coca_original, ... arroz, maionese, mandioca, mandiobacon, farofa, lasanha, macarrao}
 const sold = computeSoldCounts(); // soma dos pedidos já presentes em window.__pedidosMap
 
 // Originais do pedido (se estiver editando)
 let origFrango = 0, origCoxa = 0;
 let origCocaOriginal = 0, origCocaZero = 0;
-let origArroz = 0, origMaionese = 0, origMandioca = 0, origFarofa = 0, origmandiobacon = 0;
+let origArroz = 0, origMaionese = 0, origMandioca = 0, origFarofa = 0, origmandiobacon = 0, origLasanha = 0, origMacarrao = 0;
 
 if (window.__editingRow && window.__pedidosMap && window.__pedidosMap[window.__editingRow]) {
   const orig = window.__pedidosMap[window.__editingRow];
@@ -1055,14 +1071,18 @@ if (window.__editingRow && window.__pedidosMap && window.__pedidosMap[window.__e
   origMandioca = Number(orig.qntd_mandioca || orig.acomp_mandioca || 0) || 0;
   origmandiobacon = Number(orig.qntd_mandiobacon || orig.acomp_mandiobacon || 0) || 0;
   origFarofa   = Number(orig.qntd_farofa || orig.acomp_farofa || 0) || 0;
+  origLasanha  = Number(orig.qntd_lasanha || orig.acomp_lasanha || 0) || 0;
+  origMacarrao = Number(orig.qntd_macarrao || orig.acomp_macarrao || 0) || 0;
 
-  if (!(origArroz || origMaionese || origMandioca || origmandiobacon || origFarofa) && (orig.acompanhamentos || orig.acomp || orig.acompanhamento)) {
+  if (!(origArroz || origMaionese || origMandioca || origmandiobacon || origFarofa || origLasanha || origMacarrao) && (orig.acompanhamentos || orig.acomp || orig.acompanhamento)) {
     const parsedOrigA = parseTipoAcompanhamentoString(orig.acompanhamentos || orig.acomp || orig.acompanhamento || '');
     origArroz    = Number(parsedOrigA.arroz || 0);
     origMaionese = Number(parsedOrigA.maionese || 0);
     origMandioca = Number(parsedOrigA.mandioca || 0);
     origmandiobacon = Number(parsedOrigA.mandiobacon || 0);
     origFarofa   = Number(parsedOrigA.farofa || 0);
+    origLasanha  = Number(parsedOrigA.lasanha || 0);
+    origMacarrao = Number(parsedOrigA.macarrao || 0);
   }
 }
 
@@ -1075,7 +1095,7 @@ const reqCocaZero     = Number(reqRef.coca_zero || 0);
 // const reqCotuba       = Number(reqRef.cotuba || 0);
 
 // acompanhamentos: normaliza window.acompanhamentosSelecionados (array de strings ou objetos)
-const acompCount1 = { arroz:0, maionese:0, mandioca:0, farofa:0 , mandiobacon:0};
+const acompCount1 = { arroz:0, maionese:0, mandioca:0, farofa:0 , mandiobacon:0, lasanha:0, macarrao:0};
 
 if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosSelecionados.length) {
   window.acompanhamentosSelecionados.forEach(a => {
@@ -1086,6 +1106,8 @@ if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosS
     else if (n.includes('mandioca')) acompCount1.mandioca++;
     else if (n.includes('farofa')) acompCount1.farofa++;
     else if (n.includes('mandiobacon')) acompCount1.mandiobacon++;
+    else if (n.includes('lasanha')) acompCount1.lasanha++;
+    else if (n.includes('macarrao')) acompCount1.macarrao++;
   });
 } else {
   // fallback: se houver string em #input-acompanhamentos (não esperado, mas cobre casos)
@@ -1097,6 +1119,8 @@ if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosS
     acompCount1.mandioca = (parsed.mandioca||0);
     acompCount1.farofa = (parsed.farofa||0);
     acompCount1.mandiobacon = (parsed.mandiobacon||0);
+    acompCount1.lasanha = (parsed.lasanha||0);
+    acompCount1.macarrao = (parsed.macarrao||0);
   }
 }
 
@@ -1105,12 +1129,14 @@ const reqMaionese = Number(acompCount1.maionese || 0);
 const reqMandioca = Number(acompCount1.mandioca || 0);
 const reqmandiobacon = Number(acompCount1.mandiobacon || 0);
 const reqFarofa   = Number(acompCount1.farofa || 0);
+const reqLasanha  = Number(acompCount1.lasanha || 0);
+const reqMacarrao = Number(acompCount1.macarrao || 0);
 
 // DEBUG detalhado (coloque no console para inspecionar)
 console.log('[STOCK CHECK] produced:', produced);
 console.log('[STOCK CHECK] sold:', sold);
-console.log('[STOCK CHECK] orig:', { origFrango, origCoxa, origCocaOriginal, origCocaZero, origArroz, origMaionese, origMandioca, origmandiobacon, origFarofa });
-console.log('[STOCK CHECK] requested:', { qtdFrango, qtdCoxa, reqCocaOriginal, reqCocaZero, reqArroz, reqMaionese, reqMandioca, reqmandiobacon, reqFarofa });
+console.log('[STOCK CHECK] orig:', { origFrango, origCoxa, origCocaOriginal, origCocaZero, origArroz, origMaionese, origMandioca, origmandiobacon, origFarofa, origLasanha, origMacarrao });
+console.log('[STOCK CHECK] requested:', { qtdFrango, qtdCoxa, reqCocaOriginal, reqCocaZero, reqArroz, reqMaionese, reqMandioca, reqmandiobacon, reqFarofa, reqLasanha, reqMacarrao });
 
 // disponibilidade (sua regra: se produzido>0 então limita, senão Infinity)
 function availableFor(keyProduced, soldVal, origVal){
@@ -1130,6 +1156,8 @@ const availableMaionese = availableFor('maionese', sold.maionese, origMaionese);
 const availableMandioca = availableFor('mandioca', sold.mandioca, origMandioca);
 const availablemandiobacon = availableFor('mandiobacon', sold.mandiobacon, origmandiobacon);
 const availableFarofa   = availableFor('farofa', sold.farofa, origFarofa);
+const availableLasanha  = availableFor('lasanha', sold.lasanha, origLasanha);
+const availableMacarrao = availableFor('macarrao', sold.macarrao, origMacarrao);
 
 // === bloqueios ===
 if (Number(qtdFrango || 0) > availableFrango && availableFrango !== Infinity) {
@@ -1152,6 +1180,8 @@ if (reqMaionese > availableMaionese) { app.dialog.alert(`Não há Maionese sufic
 if (reqMandioca > availableMandioca) { app.dialog.alert(`Não há Mandioca suficiente. Disponível: ${availableMandioca}.`); hideLoading(); return; }
 if (reqmandiobacon > availablemandiobacon) { app.dialog.alert(`Não há MandioBacon suficiente. Disponível: ${availablemandiobacon}.`); hideLoading(); return; }
 if (reqFarofa   > availableFarofa)   { app.dialog.alert(`Não há Farofa suficiente. Disponível: ${availableFarofa}.`); hideLoading(); return; }
+if (reqLasanha  > availableLasanha)  { app.dialog.alert(`Não há Lasanha suficiente. Disponível: ${availableLasanha}.`); hideLoading(); return; }
+if (reqMacarrao > availableMacarrao) { app.dialog.alert(`Não há Macarrão suficiente. Disponível: ${availableMacarrao}.`); hideLoading(); return; }
 
 // -------------------- END: STOCK CHECK --------------------
 
@@ -1166,7 +1196,7 @@ if (reqFarofa   > availableFarofa)   { app.dialog.alert(`Não há Farofa suficie
           const {date: data_entrega, time: horario_entrega} = splitDateTimeLocal(datetimeLocal);
 
           // ===== Contar acompanhamentos selecionados (fonte única: window.acompanhamentosSelecionados) =====
-const acompCount = { arroz:0, maionese:0, mandioca:0, farofa:0 , mandiobacon:0};
+const acompCount = { arroz:0, maionese:0, mandioca:0, farofa:0 , mandiobacon:0, lasanha:0, macarrao:0 };
 
 // Se houver objetos selecionados (chips), contamos por nome
 if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosSelecionados.length) {
@@ -1179,25 +1209,31 @@ if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosS
     else if (n.includes('mandioca')) acompCount.mandioca++;
     else if (n.includes('mandiobacon')) acompCount.mandiobacon++;
     else if (n.includes('farofa')) acompCount.farofa++;
+    else if (n.includes('lasanha')) acompCount.lasanha++;
+    else if (n.includes('macarrao')) acompCount.macarrao++;
   });
 } else {
   // fallback: caso o front tenha campos numéricos separados (por exemplo inputs individuais)
-  // tenta ler #qtd-arroz, #qtd-maionese, #qtd-mandioca, #qtd-mandiobacon, #qtd-farofa se existirem
+  // tenta ler #qtd-arroz, #qtd-maionese, #qtd-mandioca, #qtd-mandiobacon, #qtd-farofa, #qtd-lasanha, #qtd-macarrao se existirem
   const inputArroz = document.getElementById('qtd-arroz');
   const inputMaionese = document.getElementById('qtd-maionese');
   const inputMandioca = document.getElementById('qtd-mandioca');
   const inputmandiobacon = document.getElementById('qtd-mandiobacon');
   const inputFarofa = document.getElementById('qtd-farofa');
+  const inputLasanha = document.getElementById('qtd-lasanha');
+  const inputMacarrao = document.getElementById('qtd-macarrao');
   if (inputArroz) acompCount.arroz = parseInt(inputArroz.value) || 0;
   if (inputMaionese) acompCount.maionese = parseInt(inputMaionese.value) || 0;
   if (inputMandioca) acompCount.mandioca = parseInt(inputMandioca.value) || 0;
   if (inputmandiobacon) acompCount.mandiobacon = parseInt(inputmandiobacon.value) || 0;
   if (inputFarofa) acompCount.farofa = parseInt(inputFarofa.value) || 0;
+  if (inputLasanha) acompCount.lasanha = parseInt(inputLasanha.value) || 0;
+  if (inputMacarrao) acompCount.macarrao = parseInt(inputMacarrao.value) || 0;
 }
 
 console.log('🧪 Acompanhamentos selecionados (contador):', acompCount);
 
-// formato legível para planilha: "2 Arroz, 1 Mandioca, 1 mandiobacon, 3 Farofa, 4 Maionese" (apenas se quiser enviar)
+// formato legível para planilha: "2 Arroz, 1 Mandioca, 1 mandiobacon, 3 Farofa, 4 Maionese, 5 Lasanha, 6 Macarrão" (apenas se quiser enviar)
 function formatarAcompanhamentosCounts(counts){
   const parts = [];
   if (counts.arroz) parts.push(`${counts.arroz} Arroz`);
@@ -1205,6 +1241,8 @@ function formatarAcompanhamentosCounts(counts){
   if (counts.mandioca) parts.push(`${counts.mandioca} Mandioca`);
   if (counts.mandiobacon) parts.push(`${counts.mandiobacon} MandioBacon`);
   if (counts.farofa) parts.push(`${counts.farofa} Farofa`);
+  if (counts.lasanha) parts.push(`${counts.lasanha} Lasanha`);
+  if (counts.macarrao) parts.push(`${counts.macarrao} Macarrão`);
   return parts.join(', ');
 }
 const acompanhamentosTextFormatted = formatarAcompanhamentosCounts(acompCount);
@@ -1223,6 +1261,8 @@ const body = {
   qntd_mandioca: acompCount.mandioca,
   qntd_mandiobacon: acompCount.mandiobacon,
   qntd_farofa: acompCount.farofa,
+  qntd_lasanha: acompCount.lasanha,
+  qntd_macarrao: acompCount.macarrao,
 
   // string legível
   acompanhamentos: acompanhamentosTextFormatted,
@@ -1752,15 +1792,19 @@ $$(document).on('click', '.btn-delete', async function (evt) {
   const nMandioca = Number(pedido.qntd_mandioca || pedido.acomp_mandioca || pedido['qntd_mandioca'] || 0) || 0;
   const nmandiobacon = Number(pedido.qntd_mandiobacon || pedido.acomp_mandiobacon || pedido['qntd_mandiobacon'] || 0) || 0;
   const nFarofa = Number(pedido.qntd_farofa || pedido.acomp_farofa || pedido['qntd_farofa'] || 0) || 0;
+  const nLasanha = Number(pedido.qntd_lasanha || pedido.acomp_lasanha || pedido['qntd_lasanha'] || 0) || 0;
+  const nMacarrao = Number(pedido.qntd_macarrao || pedido.acomp_macarrao || pedido['qntd_macarrao'] || 0) || 0;
   
 
-  if (nArroz + nMaionese + nMandioca + nmandiobacon + nFarofa > 0) {
+  if (nArroz + nMaionese + nMandioca + nmandiobacon + nFarofa + nLasanha + nMacarrao > 0) {
     // adicionar pelo número
     for (let i=0;i<nArroz;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.arroz.nome, preco: ACOMPANHAMENTOS.arroz.preco });
     for (let i=0;i<nMaionese;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.maionese.nome, preco: ACOMPANHAMENTOS.maionese.preco });
     for (let i=0;i<nMandioca;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.mandioca.nome, preco: ACOMPANHAMENTOS.mandioca.preco });
     for (let i=0;i<nmandiobacon;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.mandiobacon.nome, preco: ACOMPANHAMENTOS.mandiobacon.preco });
     for (let i=0;i<nFarofa;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.farofa.nome, preco: ACOMPANHAMENTOS.farofa.preco });
+    for (let i=0;i<nLasanha;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.lasanha.nome, preco: ACOMPANHAMENTOS.lasanha.preco });
+    for (let i=0;i<nMacarrao;i++) window.acompanhamentosSelecionados.push({ nome: ACOMPANHAMENTOS.macarrao.nome, preco: ACOMPANHAMENTOS.macarrao.preco });
     window.atualizarChipsAcompanhamentos();
     return;
   }
@@ -1906,7 +1950,7 @@ function getProducedCounts(dateStr) {
   const empty = {
     frango:0, coxa:0,
     coca_original:0, coca_zero:0,
-    arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0
+    arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0, lasanha:0, macarrao:0
   };
 
   if(!raw) return empty;
@@ -1923,7 +1967,9 @@ function getProducedCounts(dateStr) {
       maionese: Number(p.maionese||0),
       mandioca: Number(p.mandioca||0),
       farofa: Number(p.farofa||0),
-      mandiobacon: Number(p.mandiobacon||0)
+      mandiobacon: Number(p.mandiobacon||0),
+      lasanha: Number(p.lasanha||0),
+      macarrao: Number(p.macarrao||0)
     };
   } catch(e){
     return empty;
@@ -1942,7 +1988,9 @@ function setProducedCounts(dateStr, obj){
     maionese: Number(obj.maionese||0),
     mandioca: Number(obj.mandioca||0),
     mandiobacon: Number(obj.mandiobacon||0),
-    farofa: Number(obj.farofa||0)
+    farofa: Number(obj.farofa||0),
+    lasanha: Number(obj.lasanha||0),
+    macarrao: Number(obj.macarrao||0)
   }));
 }
 
@@ -1970,7 +2018,7 @@ function parseTipoRefriString(s) {
 }
 
 function parseAcompanhamentosString(str) {
-  const result = { arroz: 0, maionese: 0, mandioca: 0, farofa: 0, mandiobacon: 0 };
+  const result = { arroz: 0, maionese: 0, mandioca: 0, farofa: 0, mandiobacon: 0, lasanha: 0, macarrao: 0 };
   if (!str) return result;
 
   str.split(',').forEach(part => {
@@ -1985,6 +2033,8 @@ function parseAcompanhamentosString(str) {
     else if (name.includes('mandioca')) result.mandioca += qty;
     else if (name.includes('mandiobacon')) result.mandiobacon += qty;
     else if (name.includes('farofa')) result.farofa += qty;
+    else if (name.includes('lasanha')) result.lasanha += qty;
+    else if (name.includes('macarrao')) result.macarrao += qty;
   });
 
   return result;
@@ -1992,7 +2042,7 @@ function parseAcompanhamentosString(str) {
 
 
 function parseTipoAcompanhamentoString(s){
-  const out = { arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0, outros:0 };
+  const out = { arroz:0, maionese:0, mandioca:0, farofa:0, mandiobacon:0, lasanha:0, macarrao:0, outros:0 };
   if(!s) return out;
 
   const parts = String(s).split(',').map(p => p.trim()).filter(Boolean);
@@ -2009,6 +2059,8 @@ function parseTipoAcompanhamentoString(s){
     else if(n.includes('mandioca')) out.mandioca += q;
     else if(n.includes('mandiobacon')) out.mandiobacon += q;
     else if(n.includes('farofa')) out.farofa += q;
+    else if(n.includes('lasanha')) out.lasanha += q;
+    else if(n.includes('macarrao')) out.macarrao += q;
     else out.outros += q;
   });
 
@@ -2031,6 +2083,8 @@ function computeSoldCounts() {
     mandioca: 0,
     mandiobacon: 0,
     farofa: 0,
+    lasanha: 0,
+    macarrao: 0,
     outros: 0
   };
 
@@ -2055,12 +2109,14 @@ function computeSoldCounts() {
     let acompStr = p.acompanhamentos || p.acomp || p.acompanhamento || '';
 
     // se houver campos numéricos, usa eles
-    if (p.qntd_arroz || p.qntd_maionese || p.qntd_mandioca || p.qntd_mandiobacon || p.qntd_farofa) {
+    if (p.qntd_arroz || p.qntd_maionese || p.qntd_mandioca || p.qntd_mandiobacon || p.qntd_farofa || p.qntd_lasanha || p.qntd_macarrao) {
       sold.arroz    += Number(p.qntd_arroz || 0);
       sold.maionese += Number(p.qntd_maionese || 0);
       sold.mandioca += Number(p.qntd_mandioca || 0);
       sold.mandiobacon += Number(p.qntd_mandiobacon || 0);
       sold.farofa   += Number(p.qntd_farofa || 0);
+      sold.lasanha   += Number(p.qntd_lasanha || 0);
+      sold.macarrao   += Number(p.qntd_macarrao || 0);
     }
     // senão, parseia o texto
     else if (acompStr) {
@@ -2070,6 +2126,8 @@ function computeSoldCounts() {
       sold.mandioca += parsedA.mandioca;
       sold.mandiobacon += parsedA.mandiobacon;
       sold.farofa   += parsedA.farofa;
+      sold.lasanha   += parsedA.lasanha;
+      sold.macarrao   += parsedA.macarrao;
     }
   });
 
@@ -2100,6 +2158,8 @@ function updateProductionWidget() {
   set('pv-mandioca', sold.mandioca, prod.mandioca);
   set('pv-mandiobacon', sold.mandiobacon, prod.mandiobacon);
   set('pv-farofa', sold.farofa, prod.farofa);
+  set('pv-lasanha', sold.lasanha, prod.lasanha);
+  set('pv-macarrao', sold.macarrao, prod.macarrao);
 }
 
 
@@ -2129,6 +2189,8 @@ function updateProductionWidget() {
     inp('inp-prod-mandioca').value = p.mandioca;
     inp('inp-prod-mandiobacon').value = p.mandiobacon;
     inp('inp-prod-farofa').value = p.farofa;
+    inp('inp-prod-lasanha').value = p.lasanha;
+    inp('inp-prod-macarrao').value = p.macarrao;
 
     edit.style.display='block';
   };
@@ -2146,7 +2208,9 @@ function updateProductionWidget() {
       maionese: +inp('inp-prod-maionese').value,
       mandioca: +inp('inp-prod-mandioca').value,
       mandiobacon: +inp('inp-prod-mandiobacon').value,
-      farofa: +inp('inp-prod-farofa').value
+      farofa: +inp('inp-prod-farofa').value,
+      lasanha: +inp('inp-prod-lasanha').value,
+      macarrao: +inp('inp-prod-macarrao').value
     });
     edit.style.display='none';
     updateProductionWidget();

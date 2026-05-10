@@ -311,7 +311,9 @@ function parseAcompanhamentos(str){
     mandioca:0,
     mandiobacon:0,
     maionese:0,
-    farofa:0
+    farofa:0,
+    lasanha: 0,
+    macarrao: 0
   };
 
   if(!str) return result;
@@ -328,6 +330,8 @@ function parseAcompanhamentos(str){
     if(nome.includes('mandiobacon')) result.mandiobacon += qtd;
     if(nome.includes('maionese')) result.maionese += qtd;
     if(nome.includes('farofa')) result.farofa += qtd;
+    if(nome.includes('lasanha')) result.lasanha += qtd;
+    if(nome.includes('macarrão')) result.macarrao += qtd;
   });
 
   return result;
@@ -416,7 +420,8 @@ function parseRefrigerantes(str){
           const qMandiobacon = acomp.mandiobacon;
           const qMaionese = acomp.maionese;
           const qFarofa = acomp.farofa;
-
+          const qLasanha = acomp.lasanha;
+          const qMacarrao = acomp.macarrao;
           const acrescimoRaw = (p.acrescimo !== undefined) ? p.acrescimo : (p['acrescimo/desconto'] !== undefined ? p['acrescimo/desconto'] : (p.acrescimo_desconto || 0));
           const acrescimoNum = Number(acrescimoRaw || 0);
           const acrescimoStr = (acrescimoNum === 0) ? 'R$ 0,00' : ((acrescimoNum > 0) ? `+ R$ ${formatMoney(acrescimoNum)}` : `- R$ ${formatMoney(Math.abs(acrescimoNum))}`);
@@ -437,6 +442,8 @@ function parseRefrigerantes(str){
           if(qMandiobacon > 0) itens.push(`<div>🥓 MandioBacon: <strong>${qMandiobacon}</strong></div>`);
           if(qMaionese > 0) itens.push(`<div>🥗 Maionese: <strong>${qMaionese}</strong></div>`);
           if(qFarofa > 0) itens.push(`<div>🥣 Farofa: <strong>${qFarofa}</strong></div>`);
+          if(qLasanha > 0) itens.push(`<div>🍅 Lasanha: <strong>${qLasanha}</strong></div>`);
+          if(qMacarrao > 0) itens.push(`<div>🍝 Macarrão: <strong>${qMacarrao}</strong></div>`);
 
           card.innerHTML = `
             <div class="card-content">
