@@ -1139,9 +1139,22 @@ console.log('[STOCK CHECK] orig:', { origFrango, origCoxa, origCocaOriginal, ori
 console.log('[STOCK CHECK] requested:', { qtdFrango, qtdCoxa, reqCocaOriginal, reqCocaZero, reqArroz, reqMaionese, reqMandioca, reqmandiobacon, reqFarofa, reqLasanha, reqMacarrao });
 
 // disponibilidade (sua regra: se produzido>0 então limita, senão Infinity)
-function availableFor(keyProduced, soldVal, origVal){
+// function availableFor(keyProduced, soldVal, origVal){
+//   const prodVal = Number(produced[keyProduced] || 0);
+//   return (prodVal > 0) ? Math.max(prodVal - (Number(soldVal || 0) - Number(origVal || 0)), 0) : Infinity;
+// }
+
+function availableFor(keyProduced, soldVal, origVal) {
   const prodVal = Number(produced[keyProduced] || 0);
-  return (prodVal > 0) ? Math.max(prodVal - (Number(soldVal || 0) - Number(origVal || 0)), 0) : Infinity;
+
+  if (prodVal === 0) {
+    return Infinity;
+  }
+
+  return Math.max(
+    prodVal - (Number(soldVal || 0) - Number(origVal || 0)),
+    0
+  );
 }
 
 const availableFrango   = availableFor('frango', sold.frango, origFrango);
