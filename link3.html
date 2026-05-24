@@ -331,7 +331,7 @@ function parseAcompanhamentos(str){
     if(nome.includes('maionese')) result.maionese += qtd;
     if(nome.includes('farofa')) result.farofa += qtd;
     if(nome.includes('lasanha')) result.lasanha += qtd;
-    if(nome.includes('macarrão')) result.macarrao += qtd;
+    if(nome.includes('macarrao')) result.macarrao += qtd;
   });
 
   return result;
@@ -443,7 +443,7 @@ function parseRefrigerantes(str){
           if(qMaionese > 0) itens.push(`<div>🥗 Maionese: <strong>${qMaionese}</strong></div>`);
           if(qFarofa > 0) itens.push(`<div>🥣 Farofa: <strong>${qFarofa}</strong></div>`);
           if(qLasanha > 0) itens.push(`<div>🍅 Lasanha: <strong>${qLasanha}</strong></div>`);
-          if(qMacarrao > 0) itens.push(`<div>🍝 Macarrão: <strong>${qMacarrao}</strong></div>`);
+          if(qMacarrao > 0) itens.push(`<div>🍝 Macarrao: <strong>${qMacarrao}</strong></div>`);
 
           card.innerHTML = `
             <div class="card-content">
