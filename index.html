@@ -362,7 +362,7 @@
     <div class="prod-row"><div class="prod-label">🥓 MandioBacon</div><div class="prod-value" id="pv-mandiobacon">0 / 0</div></div>
     <div class="prod-row"><div class="prod-label">🥣 Farofa</div><div class="prod-value" id="pv-farofa">0 / 0</div></div>
     <div class="prod-row"><div class="prod-label">🍅 Lasanha</div><div class="prod-value" id="pv-lasanha">0 / 0</div></div>
-    <div class="prod-row"><div class="prod-label">🍝 Macarrão</div><div class="prod-value" id="pv-macarrao">0 / 0</div></div>
+    <div class="prod-row"><div class="prod-label">🍝 Macarrao</div><div class="prod-value" id="pv-macarrao">0 / 0</div></div>
 
     <div class="actions">
       <div style="display:flex; gap:6px;">
@@ -431,7 +431,7 @@
         </div>
 
         <div style="display:flex; gap:8px; align-items:center;">
-          <label style="min-width:110px;">🍝 Macarrão</label>
+          <label style="min-width:110px;">🍝 Macarrao</label>
           <input type="number" id="inp-prod-macarrao" min="0" value="0">
         </div>
 
@@ -586,7 +586,7 @@ const ACOMPANHAMENTOS = {
   mandiobacon: { nome: 'MandioBacon', preco: 20 },
   farofa: { nome: 'Farofa', preco: 15 },
   lasanha: { nome: 'Lasanha', preco: 22 },
-  macarrao: { nome: 'Macarrão', preco: 20 }
+  macarrao: { nome: 'Macarrao', preco: 20 }
 };
 
 window.atualizarChipsAcompanhamentos = function () {
@@ -1181,7 +1181,7 @@ if (reqMandioca > availableMandioca) { app.dialog.alert(`Não há Mandioca sufic
 if (reqmandiobacon > availablemandiobacon) { app.dialog.alert(`Não há MandioBacon suficiente. Disponível: ${availablemandiobacon}.`); hideLoading(); return; }
 if (reqFarofa   > availableFarofa)   { app.dialog.alert(`Não há Farofa suficiente. Disponível: ${availableFarofa}.`); hideLoading(); return; }
 if (reqLasanha  > availableLasanha)  { app.dialog.alert(`Não há Lasanha suficiente. Disponível: ${availableLasanha}.`); hideLoading(); return; }
-if (reqMacarrao > availableMacarrao) { app.dialog.alert(`Não há Macarrão suficiente. Disponível: ${availableMacarrao}.`); hideLoading(); return; }
+if (reqMacarrao > availableMacarrao) { app.dialog.alert(`Não há Macarrao suficiente. Disponível: ${availableMacarrao}.`); hideLoading(); return; }
 
 // -------------------- END: STOCK CHECK --------------------
 
@@ -1233,7 +1233,7 @@ if (Array.isArray(window.acompanhamentosSelecionados) && window.acompanhamentosS
 
 console.log('🧪 Acompanhamentos selecionados (contador):', acompCount);
 
-// formato legível para planilha: "2 Arroz, 1 Mandioca, 1 mandiobacon, 3 Farofa, 4 Maionese, 5 Lasanha, 6 Macarrão" (apenas se quiser enviar)
+// formato legível para planilha: "2 Arroz, 1 Mandioca, 1 mandiobacon, 3 Farofa, 4 Maionese, 5 Lasanha, 6 Macarrao" (apenas se quiser enviar)
 function formatarAcompanhamentosCounts(counts){
   const parts = [];
   if (counts.arroz) parts.push(`${counts.arroz} Arroz`);
@@ -1242,7 +1242,7 @@ function formatarAcompanhamentosCounts(counts){
   if (counts.mandiobacon) parts.push(`${counts.mandiobacon} MandioBacon`);
   if (counts.farofa) parts.push(`${counts.farofa} Farofa`);
   if (counts.lasanha) parts.push(`${counts.lasanha} Lasanha`);
-  if (counts.macarrao) parts.push(`${counts.macarrao} Macarrão`);
+  if (counts.macarrao) parts.push(`${counts.macarrao} Macarrao`);
   return parts.join(', ');
 }
 const acompanhamentosTextFormatted = formatarAcompanhamentosCounts(acompCount);
