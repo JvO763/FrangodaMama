@@ -122,7 +122,7 @@
                     <!-- Frango -->
                     <li class="item-content item-input">
                       <div class="item-inner">
-                        <div class="item-title item-label"> Frango Assado (R$49,90)</div>
+                        <div class="item-title item-label"> Frango Assado (R$59,90)</div>
                         <div class="item-input-wrap">
                           <input type="text" id="qtd-frango" placeholder="Quantidade" />
                         </div>
@@ -569,9 +569,9 @@ window.acompanhamentosSelecionados = window.acompanhamentosSelecionados || [];
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyosUtSZQK3llPQ1dh0GZ4Sj60SzV_n6-FegsOZur-L1UluYFVkfcSlCBrmUz2o-Bulw/exec";
         // --------------------------------------------------------------------
 
-        const PRECO_FRANGO_ASSADO = 49.90;
-        const PRECO_COXA_SOBRECOXA = 9.90;
-        const PRECO_REFRIGERANTE = 10.00;
+        const PRECO_FRANGO_ASSADO = 59.90;
+        const PRECO_COXA_SOBRECOXA = 12.90;
+        const PRECO_REFRIGERANTE = 12.00;
 
         const $$ = Dom7; // Framework7 Dom7
 
@@ -581,11 +581,11 @@ let refriSelecionados = []; // array com strings (cada item representa 1 unidade
 
 const ACOMPANHAMENTOS = {
   arroz: { nome: 'Arroz', preco: 10 },
-  maionese: { nome: 'Maionese', preco: 20 },
-  mandioca: { nome: 'Mandioca', preco: 15 },
-  mandiobacon: { nome: 'MandioBacon', preco: 20 },
+  maionese: { nome: 'Maionese', preco: 25 },
+  mandioca: { nome: 'Mandioca', preco: 20 },
+  mandiobacon: { nome: 'MandioBacon', preco: 25 },
   farofa: { nome: 'Farofa', preco: 15 },
-  lasanha: { nome: 'Lasanha', preco: 22 },
+  lasanha: { nome: 'Lasanha', preco: 25 },
   macarrao: { nome: 'Macarrao', preco: 20 }
 };
 
@@ -708,8 +708,8 @@ function verificarCombos(){
     totalCoca -= comboFrango;
   }
 
-  const descontoComboI  = comboFrango * 2.00;
-  const descontoComboII = comboCoxa * 2.70;
+  const descontoComboI  = comboFrango * 4.00;
+  const descontoComboII = comboCoxa * 6.70;
 
   const descontoTotal = -(descontoComboI + descontoComboII);
 
@@ -898,7 +898,7 @@ if (hiddenInputRefri) {
             if (nome.includes("cotuba")) {
               total += 8; // Cotuba custa 8
             } else {
-              total += 10; // Coca original e zero custam 10
+              total += 12; // Coca original e zero custam 12
             }
           });
 
