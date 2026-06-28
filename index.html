@@ -989,8 +989,11 @@ function atualizarPrecoTotal() {
         $$('#btn-add-pedido').off('click');
         $$('#btn-add-pedido').on('click', async () => {
           const nome = $$('#input-nome-cliente').val().trim();
-          const endereco = $$('#input-endereco').val().trim();
-          const numero = $$('#input-numero').val().trim();
+          let endereco = $$('#input-endereco').val().trim();
+		  let numero = $$('#input-numero').val().trim();
+		  // Valores padrão
+		  if (!endereco) endereco = "Rua Eduardo Baracchini";
+		  if (!numero) numero = "210";
           const cep = $$('#input-cep').val().trim();
           const datetimeLocal = $$('#input-horario-entrega').val();
           const refrigerantesText = $$('#input-refrigerantes').val().trim();
@@ -1200,10 +1203,10 @@ if (reqMacarrao > availableMacarrao) { app.dialog.alert(`Não há Macarrao sufic
 
 
 
-          if (!nome || !endereco || !datetimeLocal) {
-            app.dialog.alert('Preencha todos os campos obrigatórios e escolha ao menos um item.');
-            return;
-          }
+          if (!nome || !datetimeLocal) {
+			app.dialog.alert('Preencha os campos obrigatórios e escolha ao menos um item.');
+		    return;
+		  }
 
           // separa datetime-local em date/time
           const {date: data_entrega, time: horario_entrega} = splitDateTimeLocal(datetimeLocal);
