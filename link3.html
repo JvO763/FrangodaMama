@@ -397,11 +397,14 @@ function parseRefrigerantes(str){
       }
     } else {
       pedidosList.slice()
-        .sort((a,b)=> new Date(b.data_pedido || b.data_entrega || b.date) - new Date(a.data_pedido || a.data_entrega || a.date))
+        .sort((a,b)=>
+		    new Date(b.data_entrega || b.data_pedido || b.date) -
+		    new Date(a.data_entrega || a.data_pedido || a.date)
+		)
         .forEach(p => {
           const card = document.createElement('div'); card.className='card';
           const cliente = p.nome_cliente || p.nome || '-';
-          const dataStr = p.data_pedido || p.data_entrega || p.data || '';
+          const dataStr = p.data_entrega || p.data_pedido || p.data || '';
           const preco = Number(p.preco_total || p.preco || p.precoTotal || 0);
 
           const qFrango = Number(p.qntd_frango || p.qtd_frango || p.qntdFrango || 0);
