@@ -1321,7 +1321,7 @@ body.tipoRefrigerante = refrigerantesFormatados;
             // DEBUG: inspeciona o body antes do envio (coloque aqui para testar)
             console.log('[DEBUG] body antes de updateOrder:', body);
 
-
+			console.table(body);
             const form = new URLSearchParams();
             Object.entries(body).forEach(([k,v]) => form.append(k, v === undefined || v === null ? '' : String(v)));
 
