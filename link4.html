@@ -120,23 +120,25 @@
       // 1. Função para carregar a previsão gerada pela IA direto da planilha
       async function carregarPrevisaoDaIA() {
         try {
-          const resposta = await fetch(`${SCRIPT_URL}?action=getPrevisao`);
+          // URL gerada pelo Render
+          const resposta = await fetch("https://ia-vendas-frangos-api.onrender.com/previsao");
           const dados = await resposta.json();
 
           if (dados && dados.sucesso) {
-            document.getElementById("ia-frangos").innerText = dados.frangos_previstos || "0";
-            document.getElementById("ia-coxas").innerText = dados.coxas_previstas || "0";
+            document.getElementById("ia-frangos").innerText = dados.frangos_previstos;
+            document.getElementById("ia-coxas").innerText = dados.coxas_previstas;
           } else {
             document.getElementById("ia-frangos").innerText = "Indisponível";
             document.getElementById("ia-coxas").innerText = "Indisponível";
           }
         } catch (erro) {
           console.error("Erro ao carregar previsão da IA:", erro);
-          document.getElementById("ia-frangos").innerText = "Erro";
-          document.getElementById("ia-coxas").innerText = "Erro";
+          document.getElementById("ia-frangos").innerText = "Indisponível";
+          document.getElementById("ia-coxas").innerText = "Indisponível";
         }
       }
 
+      document.addEventListener("DOMContentLoaded", carregarPrevisaoDaIA);
       // Executa ao carregar a página
       document.addEventListener("DOMContentLoaded", carregarPrevisaoDaIA);
 
