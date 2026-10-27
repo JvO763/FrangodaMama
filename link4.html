@@ -10,50 +10,179 @@
     <!-- Color theme for statusbar (Android only) -->
     <meta name="theme-color" content="#2196f3">
     <!-- Your app title -->
-    <title>My App</title>
+    <title>Frango da Mama - IA & Configurações</title>
     <!-- Path to Framework7 Library Bundle CSS -->
     <link rel="stylesheet" href="lib/framework7-bundle.min.css">
     <!-- CSS PERSONALIZADO PARA MENU-->
+    <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/personalizado.css">
     <!--Ícones Material Design-->
     <link rel="stylesheet" href="css/materialdesignicons.min.css">
-
-
+    <link rel="stylesheet" href="css/remixicon.css">
 </head>
 
 <body>
     <!-- App root element -->
     <div id="app">
 
-        <!-- Your main view, should have "view-main" class -->
+        <!-- Toolbar inferior fixa idêntica à do index.html -->
         <div class="view view-main">
-            <!-- Initial Page, "data-name" contains page name -->
-            <div data-name="link4" class="page">
+          <div class="toolbar toolbar-bottom">
+            <div class="toolbar-inner display-flex">
+              <a href="/loadingindex/" class="tab-link link"><i class="ri-restaurant-line"></i><span>Pedidos</span></a>
+              <a href="/loadinglink2/" class="tab-link link"><i class="ri-map-pin-line"></i><span>Rotas</span></a>
+              <a href="/loadinglink3/" class="tab-link link"><i class="ri-wallet-3-line"></i><span>Financeiro</span></a>
+              <a href="/loadinglink4/" class="tab-link link active"><i class="ri-settings-3-line"></i><span>Configurações</span></a>
+            </div>
+          </div>
 
-                <!-- Top Navbar -->
-                <div class="navbar">
-                    <div class="navbar-bg"></div>
-                    <div class="navbar-inner justify-content-center">
-                        <div class="title ">Link 4</div>
-                    </div>
-                </div>
-
-                <!-- Scrollable page content -->
-                <div class="page-content">
-                    <div class="block">
-                        Conteúdo do link 4
-                    </div>
+          <!-- Página Configurações / IA -->
+          <div data-name="link4" class="page color-theme-blue">
+            
+            <!-- Navbar Superior -->
+            <div class="navbar">
+                <div class="navbar-bg"></div>
+                <div class="navbar-inner">
+                    <div class="title">Inteligência Artificial & Fechamento</div>
                 </div>
             </div>
+
+            <!-- Conteúdo da Página -->
+            <div class="page-content">
+              
+              <!-- Bloco de Previsão da IA -->
+              <div class="block">
+                <div class="card" style="background: #f0f4f8; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                  <div style="font-size: 1.1rem; font-weight: bold; color: #1e3a8a; margin-bottom: 10px;">
+                    🔮 Sugestão da IA para o Próximo Domingo
+                  </div>
+                  <p style="margin: 5px 0;">🐔 Frangos recomendados: <strong id="ia-frangos" style="color: #d97706;">Carregando...</strong></p>
+                  <p style="margin: 5px 0;">🍗 Coxas-sobrecoxas recomendadas: <strong id="ia-coxas" style="color: #d97706;">Carregando...</strong></p>
+                </div>
+
+                <!-- Bloco de Fechamento de Expediente -->
+                <div class="block-title" style="font-size: 1.1rem; font-weight: bold; color: #333;">🤖 Treinamento da IA (Fim de Expediente)</div>
+                <div class="block-text">
+                  Insira abaixo a quantidade real de frangos e coxas solicitadas ao término do expediente de domingo. Esses dados serão salvos para atualizar o aprendizado da IA.
+                </div>
+
+                <div class="list no-hairlines-md" style="background: #fff; border-radius: 12px; padding: 10px; margin-top: 15px;">
+                  <ul>
+                    <!-- Frangos Solicitados -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">🐔 Total de Frangos Solicitados</div>
+                        <div class="item-input-wrap">
+                          <input type="number" id="input-fechamento-frango" placeholder="Ex: 12" min="0" />
+                        </div>
+                      </div>
+                    </li>
+
+                    <!-- Coxas Solicitadas -->
+                    <li class="item-content item-input">
+                      <div class="item-inner">
+                        <div class="item-title item-label">🍗 Total de Coxas-Sobrecoxas Solicitadas</div>
+                        <div class="item-input-wrap">
+                          <input type="number" id="input-fechamento-coxa" placeholder="Ex: 20" min="0" />
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="block" style="margin-top: 20px;">
+                  <button type="button" class="button button-fill button-large" id="btn-salvar-fechamento">
+                    Salvar Dados para a IA
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
         </div>
     </div>
+
     <!-- Path to Framework7 Library Bundle JS-->
     <script type="text/javascript" src="lib/framework7-bundle.min.js"></script>
 	<!-- jQuery -->
 	<script type="text/javascript" src="lib/jquery-3.7.0.min.js"></script>	
+    <script src="js/funcoes.js"></script>
     <!-- Roteamento do app-->
     <script type="text/javascript" src="js/routes.js"></script>
     <script src="cordova.js"></script>
+
+    <!-- Scripts de Integração com o Apps Script -->
+    <script>
+      var $$ = Dom7;
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyosUtSZQK3llPQ1dh0GZ4Sj60SzV_n6-FegsOZur-L1UluYFVkfcSlCBrmUz2o-Bulw/exec";
+
+      // 1. Função para carregar a previsão gerada pela IA direto da planilha
+      async function carregarPrevisaoDaIA() {
+        try {
+          const resposta = await fetch(`${SCRIPT_URL}?action=getPrevisao`);
+          const dados = await resposta.json();
+
+          if (dados && dados.sucesso) {
+            document.getElementById("ia-frangos").innerText = dados.frangos_previstos || "0";
+            document.getElementById("ia-coxas").innerText = dados.coxas_previstas || "0";
+          } else {
+            document.getElementById("ia-frangos").innerText = "Indisponível";
+            document.getElementById("ia-coxas").innerText = "Indisponível";
+          }
+        } catch (erro) {
+          console.error("Erro ao carregar previsão da IA:", erro);
+          document.getElementById("ia-frangos").innerText = "Erro";
+          document.getElementById("ia-coxas").innerText = "Erro";
+        }
+      }
+
+      // Executa ao carregar a página
+      document.addEventListener("DOMContentLoaded", carregarPrevisaoDaIA);
+
+      // 2. Função para salvar os dados reais de fechamento do expediente
+      $$('#btn-salvar-fechamento').on('click', async function () {
+        const qntdFrango = $$('#input-fechamento-frango').val();
+        const qntdCoxa = $$('#input-fechamento-coxa').val();
+
+        if (!qntdFrango || !qntdCoxa) {
+          app.dialog.alert('Por favor, preencha os campos de frango e coxa.');
+          return;
+        }
+
+        const body = {
+          action: 'salvarFechamento',
+          qntd_frango: qntdFrango,
+          qntd_coxa: qntdCoxa
+        };
+
+        try {
+          app.preloader.show();
+          const form = new URLSearchParams();
+          Object.entries(body).forEach(([k, v]) => form.append(k, v));
+
+          const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: form
+          });
+
+          const json = await res.json();
+          app.preloader.hide();
+
+          if (json && json.sucesso) {
+            app.dialog.alert('Dados de fechamento salvos com sucesso para o próximo treino da IA!');
+            $$('#input-fechamento-frango').val('');
+            $$('#input-fechamento-coxa').val('');
+          } else {
+            app.dialog.alert('Erro ao salvar os dados na planilha.');
+          }
+        } catch (err) {
+          app.preloader.hide();
+          console.error(err);
+          app.dialog.alert('Erro de conexão com o servidor.');
+        }
+      });
+    </script>
 </body>
 
 </html>
