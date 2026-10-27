@@ -121,7 +121,7 @@
       async function carregarPrevisaoDaIA() {
         try {
           // URL gerada pelo Render
-          const resposta = await fetch("https://ia-vendas-frangos-api.onrender.com/previsao");
+          const resposta = await fetch("https://ia-vendas-frangos.onrender.com/previsao");
           const dados = await resposta.json();
 
           if (dados && dados.sucesso) {
